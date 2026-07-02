@@ -1,0 +1,229 @@
+@import "tailwindcss";
+
+/*
+  TocaPlay design system — "voxel night", clean edition.
+  Identity: night-sky indigo + grass/gold/teal/terracotta, pixel display font.
+  Legibility first: pixel (Silkscreen) ONLY on titles and group names; everything
+  else in Rubik (sans), larger. Surfaces are light panels; the blocky press is
+  reserved for primary buttons. Big numbers stay in VT323 (mono).
+*/
+
+@theme {
+  --color-night-950: #0f0a1e;
+  --color-night-900: #171029;
+  --color-night-850: #1d1533;
+  --color-night-800: #241b3f;
+  --color-night-700: #392c60;
+  --color-night-600: #4f3e80;
+  --color-night-500: #6552a0;
+
+  --color-ink: #f6f1e8;
+  --color-muted: #c4bbe0;
+
+  --color-grass: #5aa83c;
+  --color-grass-dark: #3f7a28;
+  --color-terra: #db7846;
+  --color-terra-dark: #9d4d27;
+  --color-gold: #f0c246;
+  --color-gold-dark: #b98a22;
+  --color-amber: #e2952f;
+  --color-amber-dark: #a5661a;
+  /* Brand focus: orange, paired with teal (diamond) for contrast. */
+  --color-orange: #f0801f;
+  --color-orange-dark: #b4550f;
+  --color-diamond: #37c2b4;
+  --color-diamond-dark: #218176;
+  --color-redstone: #db4a40;
+  --color-redstone-dark: #8f2b24;
+
+  --font-display: var(--font-silkscreen), monospace;
+  --font-sans: var(--font-rubik), system-ui, sans-serif;
+  --font-mono: var(--font-vt323), monospace;
+}
+
+:root {
+  --edge-light: rgba(255, 255, 255, 0.10);
+  --edge-dark: rgba(0, 0, 0, 0.30);
+}
+
+html {
+  height: 100%;
+  font-size: 16px;
+}
+
+body {
+  min-height: 100%;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+  background-color: var(--color-night-950);
+  /* very subtle night-sky wash — kept faint so content stays the focus */
+  background-image:
+    radial-gradient(ellipse 55% 40% at 10% -8%, rgba(101, 82, 160, 0.16), transparent 60%),
+    radial-gradient(ellipse 45% 35% at 95% 2%, rgba(219, 120, 70, 0.05), transparent 55%);
+  background-attachment: fixed;
+}
+
+img.pixelated,
+.pixelated {
+  image-rendering: pixelated;
+}
+
+/* ---- Surfaces: clean panels (named .panel to avoid Tailwind's .block) ---- */
+.panel {
+  border: 1px solid var(--color-night-700);
+  background-color: var(--color-night-850);
+  border-radius: 5px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.block-flat {
+  border: 1px solid var(--color-night-700);
+  background-color: var(--color-night-850);
+  border-radius: 5px;
+}
+
+/* ---- Buttons: the one place the blocky press lives ---- */
+.mc-btn {
+  --btn-bg: var(--color-night-700);
+  --btn-edge: var(--color-night-950);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.1;
+  color: var(--color-ink);
+  background-color: var(--btn-bg);
+  border: 1px solid var(--btn-edge);
+  border-radius: 5px;
+  padding: 0.7rem 1.1rem;
+  box-shadow: 0 3px 0 var(--btn-edge);
+  transform: translateY(0);
+  transition: transform 60ms ease, box-shadow 60ms ease, filter 60ms ease;
+  cursor: pointer;
+  user-select: none;
+}
+.mc-btn:hover {
+  filter: brightness(1.06);
+}
+.mc-btn:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 var(--btn-edge);
+}
+.mc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.mc-btn-grass {
+  --btn-bg: var(--color-grass);
+  --btn-edge: var(--color-grass-dark);
+  color: #10240a;
+}
+.mc-btn-terra {
+  --btn-bg: var(--color-terra);
+  --btn-edge: var(--color-terra-dark);
+  color: #2a1206;
+}
+.mc-btn-gold {
+  --btn-bg: var(--color-gold);
+  --btn-edge: var(--color-gold-dark);
+  color: #2a2005;
+}
+.mc-btn-amber {
+  --btn-bg: var(--color-amber);
+  --btn-edge: var(--color-amber-dark);
+  color: #2a1705;
+}
+.mc-btn-danger {
+  --btn-bg: var(--color-redstone);
+  --btn-edge: var(--color-redstone-dark);
+  color: #2a0806;
+}
+.mc-btn-sm {
+  font-size: 0.85rem;
+  padding: 0.5rem 0.8rem;
+  box-shadow: 0 2px 0 var(--btn-edge);
+}
+.mc-btn-sm:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+/* ---- Form fields ---- */
+.mc-input {
+  width: 100%;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  color: var(--color-ink);
+  background-color: var(--color-night-950);
+  border: 1px solid var(--color-night-600);
+  border-radius: 5px;
+  padding: 0.65rem 0.8rem;
+  outline: none;
+  transition: border-color 80ms ease;
+}
+.mc-input::placeholder {
+  color: color-mix(in srgb, var(--color-muted) 60%, transparent);
+}
+.mc-input:focus-visible {
+  border-color: var(--color-orange);
+}
+/* Extra left padding when a search icon sits inside the field. Compound
+   selector so it beats the .mc-input padding shorthand. */
+.mc-input.pl-icon {
+  padding-left: 2.6rem;
+}
+/* Native dropdown option lists render on an OS-white surface — force dark,
+   readable text (fixes the calendar year/month dropdowns being invisible). */
+option {
+  color: #14101f;
+  background-color: #ffffff;
+}
+
+/* ---- Eyebrow / small caps label (sans, legible) ---- */
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* ---- Chips (sans) ---- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ---- Pixel display helper (titles / group names only) ---- */
+.pixel {
+  font-family: var(--font-display);
+  word-spacing: -0.12em;
+  line-height: 1.35;
+}
+
+/* Focus ring (keyboard) */
+:where(a, button, [role="button"], input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-orange);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+  .mc-btn:active:not(:disabled) {
+    transform: none;
+  }
+}

@@ -1,0 +1,54 @@
+"use client";
+
+import { useState } from "react";
+import { Pencil } from "lucide-react";
+import { SexIcon } from "@/components/ui/SexIcon";
+import { TeenDetailModal, type TeenDetail } from "@/components/TeenDetailModal";
+import { ageAt } from "@/lib/age";
+
+export function TeenList({
+  teens,
+  refDate,
+}: {
+  teens: TeenDetail[];
+  refDate: string;
+}) {
+  const [selected, setSelected] = useState<TeenDetail | null>(null);
+
+  return (
+    <>
+      <ul className="flex flex-col gap-2">
+        {teens.map((t) => (
+          <li key={t.id}>
+            <button
+              type="button"
+              onClick={() => setSelected(t)}
+              title={`Ver e editar ${t.name}`}
+              className="group panel flex w-full cursor-pointer items-center gap-4 p-4 text-left transition-colors hover:border-orange/50 hover:bg-night-800"
+            >
+              <span className="font-mono text-lg leading-none text-muted">
+                {t.display_id}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-base font-semibold text-ink">
+                {t.name}
+              </span>
+              <span className="flex shrink-0 items-center gap-1.5 text-sm text-muted">
+                <SexIcon sex={t.sex} className="h-4 w-4" />
+                {ageAt(t.birthdate, refDate)} anos
+              </span>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-night-700 text-muted transition-colors group-hover:border-orange group-hover:text-orange">
+                <Pencil className="h-4 w-4" strokeWidth={2.5} />
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <TeenDetailModal
+        teen={selected}
+        refDate={refDate}
+        onClose={() => setSelected(null)}
+      />
+    </>
+  );
+}

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(curl --retry 50 --retry-delay 1 --retry-connrefused -s -o /dev/null -w \"app up on :3000 -> %{http_code}\\\\n\" http://localhost:3000/login)"
+    ]
+  }
+}
