@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireSession } from "@/lib/auth";
-import { teenSchema } from "@/lib/validations";
+import {
+  parseTeenForm,
+  teenRow,
+  insertTeenWithGuardians,
+  replaceGuardians,
+} from "@/lib/teens/persist";
 import { fieldErrorsFrom, type FormState } from "@/lib/forms";
 
 function resolveUnitId(
@@ -19,20 +24,15 @@ export async function createTeen(
   formData: FormData,
 ): Promise<FormState> {
   const ctx = await requireSession();
-  const parsed = teenSchema.safeParse(Object.fromEntries(formData));
+  const parsed = parseTeenForm(formData);
   if (!parsed.success) return fieldErrorsFrom(parsed.error);
 
   const unitId = resolveUnitId(ctx.profile.unit_id, formData);
   if (!unitId) return { error: "Selecione a unidade." };
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("teens")
-    .insert({ unit_id: unitId, ...parsed.data });
-
-  if (error) {
-    return { error: "Não foi possível salvar. Tente novamente." };
-  }
+  const { error } = await insertTeenWithGuardians(supabase, unitId, parsed.data);
+  if (error) return { error };
 
   revalidatePath("/cadastros/pre-adolescentes");
   redirect("/cadastros/pre-adolescentes");
@@ -44,18 +44,30 @@ export async function updateTeen(
   formData: FormData,
 ): Promise<FormState> {
   await requireSession();
-  const parsed = teenSchema.safeParse(Object.fromEntries(formData));
+  const parsed = parseTeenForm(formData);
   if (!parsed.success) return fieldErrorsFrom(parsed.error);
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("teens")
+    .select("unit_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!existing) return { error: "Cadastro não encontrado." };
+
   const { error } = await supabase
     .from("teens")
-    .update(parsed.data)
+    .update(teenRow(parsed.data))
     .eq("id", id);
+  if (error) return { error: "Não foi possível salvar as alterações." };
 
-  if (error) {
-    return { error: "Não foi possível salvar as alterações." };
-  }
+  const { error: gErr } = await replaceGuardians(
+    supabase,
+    existing.unit_id,
+    id,
+    parsed.data,
+  );
+  if (gErr) return { error: gErr };
 
   revalidatePath("/cadastros/pre-adolescentes");
   redirect("/cadastros/pre-adolescentes");

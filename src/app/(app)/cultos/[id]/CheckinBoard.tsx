@@ -12,11 +12,17 @@ import {
   Unlock,
   CheckCircle2,
   MessageCircle,
+  Cake,
+  Check,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { ageAt } from "@/lib/age";
+import { ageAt, isBirthday } from "@/lib/age";
 import { guardianMessage, waLink } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Chip";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SexIcon } from "@/components/ui/SexIcon";
 import { Input } from "@/components/ui/Field";
@@ -39,10 +45,13 @@ export interface BoardCheckin {
   displayId: string;
   name: string;
   sex: Sex;
+  birthdate: string;
   age: number;
   status: CheckinStatus;
+  /** Today's chosen responsável (or primary fallback). */
   guardianName: string;
   guardianPhone: string;
+  isFirstTime: boolean;
 }
 
 interface SearchResult {
@@ -51,6 +60,13 @@ interface SearchResult {
   name: string;
   sex: Sex;
   birthdate: string;
+}
+
+interface GuardianOption {
+  id: string;
+  name: string;
+  phone: string;
+  relationship: string | null;
 }
 
 export function CheckinBoard({
@@ -74,6 +90,12 @@ export function CheckinBoard({
   const [results, setResults] = useState<SearchResult[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [notifyOpen, setNotifyOpen] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  // When a teen has >1 guardian, pick who's with them today before checking in.
+  const [choosing, setChoosing] = useState<{
+    teen: SearchResult;
+    guardians: GuardianOption[];
+  } | null>(null);
 
   const presentTeens = checkins.filter((c) => c.status === "present");
 
@@ -137,6 +159,37 @@ export function CheckinBoard({
   const run = (fn: () => Promise<void>) => startTransition(fn);
   const term = q.trim();
 
+  // On check-in: if the teen has more than one responsável, ask who's with them
+  // today; otherwise check in with the single guardian (or none).
+  async function startCheckin(r: SearchResult) {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("teen_guardians")
+      .select("id, name, phone, relationship")
+      .eq("teen_id", r.id)
+      .order("sort_order");
+    const gs = (data ?? []) as GuardianOption[];
+    if (gs.length > 1) {
+      setChoosing({ teen: r, guardians: gs });
+      return;
+    }
+    confirmCheckin(r.id, gs[0]?.id ?? null);
+  }
+
+  function confirmCheckin(teenId: string, guardianId: string | null) {
+    run(async () => {
+      const res = await addCheckin(sessionId, teenId, guardianId);
+      if (res?.error) {
+        setActionError(res.error);
+        return;
+      }
+      setActionError(null);
+      setQ("");
+      setResults([]);
+      setChoosing(null);
+    });
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Close / reopen bar */}
@@ -154,6 +207,12 @@ export function CheckinBoard({
               <Unlock className="h-4 w-4" strokeWidth={2.5} /> Reabrir
             </Button>
           ) : null}
+        </div>
+      ) : null}
+
+      {actionError ? (
+        <div className="panel border-redstone/50 bg-redstone/10 p-3 text-sm font-medium text-redstone">
+          {actionError}
         </div>
       ) : null}
 
@@ -224,13 +283,7 @@ export function CheckinBoard({
                     size="sm"
                     variant="grass"
                     disabled={pending}
-                    onClick={() =>
-                      run(async () => {
-                        await addCheckin(sessionId, r.id);
-                        setQ("");
-                        setResults([]);
-                      })
-                    }
+                    onClick={() => startCheckin(r)}
                   >
                     <UserPlus className="h-4 w-4" strokeWidth={2.5} /> Check-in
                   </Button>
@@ -278,6 +331,12 @@ export function CheckinBoard({
               <span className="min-w-0 flex-1 truncate font-medium text-ink">
                 {c.name}
               </span>
+              {c.isFirstTime ? <Chip tone="diamond">1ª vez</Chip> : null}
+              {isBirthday(c.birthdate, sessionDate) ? (
+                <Chip tone="gold" className="gap-1">
+                  <Cake className="h-3 w-3" /> Aniversário
+                </Chip>
+              ) : null}
               <span className="flex items-center gap-1 text-sm text-muted">
                 <SexIcon sex={c.sex} className="h-3.5 w-3.5" />
                 {c.age} anos
@@ -289,16 +348,17 @@ export function CheckinBoard({
                   {c.status === "present" ? (
                     <>
                       {waLink(c.guardianPhone, guardianMessage(c.name, c.guardianName)) ? (
-                        <a
-                          href={waLink(c.guardianPhone, guardianMessage(c.name, c.guardianName))!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={`Notificar responsável de ${c.name}`}
-                          className="grid h-9 w-9 place-items-center rounded-md border border-night-700 text-grass transition-colors hover:border-grass"
-                        >
-                          <MessageCircle className="h-4 w-4" strokeWidth={2.5} />
-                          <span className="sr-only">Notificar responsável</span>
-                        </a>
+                        <Tooltip label="Avisar responsável (WhatsApp)">
+                          <a
+                            href={waLink(c.guardianPhone, guardianMessage(c.name, c.guardianName))!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Avisar responsável de ${c.name}`}
+                            className="grid h-9 w-9 place-items-center rounded-md border border-night-700 text-grass transition-colors hover:border-grass"
+                          >
+                            <MessageCircle className="h-4 w-4" strokeWidth={2.5} />
+                          </a>
+                        </Tooltip>
                       ) : null}
                       <Button
                         size="sm"
@@ -349,10 +409,19 @@ export function CheckinBoard({
           teens={presentTeens.map((c) => ({
             id: c.id,
             name: c.name,
-            guardianName: c.guardianName,
-            guardianPhone: c.guardianPhone,
+            guardians: [{ name: c.guardianName, phone: c.guardianPhone }],
           }))}
           onClose={() => setNotifyOpen(false)}
+        />
+      ) : null}
+
+      {choosing ? (
+        <ChooseGuardianModal
+          teenName={choosing.teen.name}
+          guardians={choosing.guardians}
+          pending={pending}
+          onConfirm={(gid) => confirmCheckin(choosing.teen.id, gid)}
+          onClose={() => setChoosing(null)}
         />
       ) : null}
     </div>
@@ -388,15 +457,94 @@ function IconAction({
   disabled?: boolean;
 }) {
   return (
-    <button
-      type="button"
-      title={title}
-      onClick={onClick}
-      disabled={disabled}
-      className="grid h-9 w-9 place-items-center rounded-md border border-night-700 text-muted transition-colors hover:text-ink disabled:opacity-50"
-    >
-      {children}
-      <span className="sr-only">{title}</span>
-    </button>
+    <Tooltip label={title}>
+      <button
+        type="button"
+        aria-label={title}
+        onClick={onClick}
+        disabled={disabled}
+        className="grid h-9 w-9 place-items-center rounded-md border border-night-700 text-muted transition-colors hover:text-ink disabled:opacity-50"
+      >
+        {children}
+      </button>
+    </Tooltip>
+  );
+}
+
+/** Pick which responsável is with the teen today (teens with >1 guardian). */
+function ChooseGuardianModal({
+  teenName,
+  guardians,
+  pending,
+  onConfirm,
+  onClose,
+}: {
+  teenName: string;
+  guardians: GuardianOption[];
+  pending: boolean;
+  onConfirm: (guardianId: string) => void;
+  onClose: () => void;
+}) {
+  const [sel, setSel] = useState(guardians[0]?.id ?? "");
+  return (
+    <Modal open onClose={onClose} title="Quem está com o pré-adolescente?">
+      <div className="flex flex-col gap-4">
+        <p className="text-sm text-muted">
+          Selecione o responsável que trouxe <b className="text-ink">{teenName}</b>{" "}
+          hoje. É ele quem poderá ser notificado.
+        </p>
+        <div className="flex flex-col gap-2">
+          {guardians.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              onClick={() => setSel(g.id)}
+              aria-pressed={sel === g.id}
+              className={cn(
+                "flex items-center gap-3 rounded-md border p-3 text-left transition-colors",
+                sel === g.id
+                  ? "border-grass-dark bg-grass/15"
+                  : "border-night-700 hover:border-night-600",
+              )}
+            >
+              <span
+                className={cn(
+                  "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
+                  sel === g.id
+                    ? "border-grass-dark bg-grass text-[#10240a]"
+                    : "border-night-600 text-transparent",
+                )}
+              >
+                <Check className="h-3 w-3" strokeWidth={3} />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium text-ink">
+                  {g.name}
+                  {g.relationship ? (
+                    <span className="ml-1 text-xs font-normal text-muted">
+                      ({g.relationship})
+                    </span>
+                  ) : null}
+                </span>
+                <span className="block text-xs text-muted">{g.phone}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button size="sm" onClick={onClose} disabled={pending}>
+            Cancelar
+          </Button>
+          <Button
+            size="sm"
+            variant="grass"
+            disabled={pending || !sel}
+            onClick={() => onConfirm(sel)}
+          >
+            <UserPlus className="h-4 w-4" strokeWidth={2.5} /> Fazer check-in
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }

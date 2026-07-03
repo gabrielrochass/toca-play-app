@@ -6,16 +6,32 @@ export function Field({
   error,
   children,
   hint,
+  required,
+  optional,
 }: {
   label: string;
   error?: string[];
   hint?: string;
   children: ReactNode;
+  /** Shows a subtle orange asterisk. */
+  required?: boolean;
+  /** Shows a muted "(opcional)" tag. */
+  optional?: boolean;
 }) {
   return (
     <label className="block">
       <span className="mb-1.5 block font-sans text-sm font-medium text-muted">
         {label}
+        {required ? (
+          <span className="ml-0.5 text-orange" aria-hidden>
+            *
+          </span>
+        ) : null}
+        {optional ? (
+          <span className="ml-1 text-xs font-normal text-muted/70">
+            (opcional)
+          </span>
+        ) : null}
       </span>
       {children}
       {hint && !error?.length ? (
@@ -31,12 +47,13 @@ export function Field({
 }
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn("mc-input", className)} {...props} />;
+  // min-w-0 lets inputs shrink inside grids (avoids mobile horizontal scroll).
+  return <input className={cn("mc-input min-w-0", className)} {...props} />;
 }
 
 export function Select({
   className,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select className={cn("mc-input", className)} {...props} />;
+  return <select className={cn("mc-input min-w-0", className)} {...props} />;
 }

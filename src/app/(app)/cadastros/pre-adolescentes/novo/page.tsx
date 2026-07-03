@@ -21,7 +21,7 @@ export default async function NovoPreAdolescentePage() {
   }
 
   return (
-    <div className="max-w-lg">
+    <div className="max-w-3xl">
       <PageHeader
         title="Novo pré-adolescente"
         subtitle="Um ID será gerado automaticamente."

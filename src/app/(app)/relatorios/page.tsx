@@ -5,12 +5,17 @@ import {
   teenGrowthByMonth,
   teensPerSession,
   volunteersPerSession,
+  teensBySexPerSession,
 } from "@/lib/analytics/queries";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatTile } from "@/components/ui/StatTile";
 import { ChartCard } from "@/components/charts/ChartCard";
-import { LineChartMc, BarChartMc } from "@/components/charts/Charts";
-import { CHART_COLORS } from "@/components/charts/palette";
+import {
+  LineChartMc,
+  BarChartMc,
+  GroupedBarChartMc,
+} from "@/components/charts/Charts";
+import { CHART_COLORS, SEX_COLORS } from "@/components/charts/palette";
 
 export default async function RelatoriosPage() {
   const ctx = await requireSession();
@@ -18,10 +23,11 @@ export default async function RelatoriosPage() {
   const u = scope.unitId;
   const supabase = await createClient();
 
-  const [growth, teenSeries, volSeries] = await Promise.all([
+  const [growth, teenSeries, volSeries, sexSeries] = await Promise.all([
     teenGrowthByMonth(supabase, u),
     teensPerSession(supabase, u),
     volunteersPerSession(supabase, u),
+    teensBySexPerSession(supabase, u),
   ]);
 
   const teenCountQ = supabase
@@ -49,6 +55,13 @@ export default async function RelatoriosPage() {
       )
     : 0;
 
+  const avgBoys = sexSeries.length
+    ? Math.round(sexSeries.reduce((s, p) => s + p.m, 0) / sexSeries.length)
+    : 0;
+  const avgGirls = sexSeries.length
+    ? Math.round(sexSeries.reduce((s, p) => s + p.f, 0) / sexSeries.length)
+    : 0;
+
   return (
     <>
       <PageHeader
@@ -56,11 +69,13 @@ export default async function RelatoriosPage() {
         subtitle="Crescimento dos pré-adolescentes e engajamento dos voluntários ao longo do tempo."
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
         <StatTile label="Pré-adolescentes" value={teenCount ?? 0} tone="grass" />
         <StatTile label="Voluntários" value={volCount ?? 0} tone="diamond" />
         <StatTile label="Cultos" value={sessionCount ?? 0} tone="gold" />
         <StatTile label="Média/culto" value={avgAttendance} tone="terra" />
+        <StatTile label="Média meninos/culto" value={avgBoys} tone="diamond" />
+        <StatTile label="Média meninas/culto" value={avgGirls} tone="terra" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -101,6 +116,20 @@ export default async function RelatoriosPage() {
             data={volSeries}
             dataKey="value"
             color={CHART_COLORS.terra}
+          />
+        </ChartCard>
+
+        <ChartCard
+          title="Presença por sexo"
+          subtitle="Meninos e meninas presentes por culto"
+          empty={sexSeries.length === 0}
+        >
+          <GroupedBarChartMc
+            data={sexSeries}
+            series={[
+              { key: "m", name: "Meninos", color: SEX_COLORS.M },
+              { key: "f", name: "Meninas", color: SEX_COLORS.F },
+            ]}
           />
         </ChartCard>
       </div>

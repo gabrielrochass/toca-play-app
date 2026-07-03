@@ -23,16 +23,32 @@ export default async function EditarPreAdolescentePage({
 
   if (!teen) notFound();
 
+  const { data: guardianRows } = await supabase
+    .from("teen_guardians")
+    .select("name, phone, relationship")
+    .eq("teen_id", id)
+    .order("sort_order");
+  const guardians = (guardianRows ?? []).map((g) => ({
+    name: g.name,
+    phone: g.phone,
+    relationship: g.relationship ?? "",
+  }));
+
   const action = updateTeen.bind(null, teen.id);
 
   return (
-    <div className="max-w-lg">
+    <div className="max-w-3xl">
       <PageHeader
         title="Editar pré-adolescente"
         subtitle={`${teen.display_id} · ${teen.name}`}
       />
       <Card>
-        <TeenForm action={action} teen={teen} submitLabel="Salvar alterações" />
+        <TeenForm
+          action={action}
+          teen={teen}
+          guardians={guardians}
+          submitLabel="Salvar alterações"
+        />
       </Card>
     </div>
   );

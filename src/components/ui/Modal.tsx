@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 // Module-level DOM helpers (kept out of the component to satisfy the
 // react-hooks immutability lint rule about assigning to DOM properties).
@@ -18,11 +19,14 @@ export function Modal({
   onClose,
   title,
   children,
+  size = "md",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
+  /** md = form/dialog default; lg/xl = wider forms that use 2 columns. */
+  size?: "md" | "lg" | "xl";
 }) {
   useEffect(() => {
     if (!open) return;
@@ -52,7 +56,14 @@ export function Modal({
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-black/65 backdrop-blur-sm"
       />
-      <div className="panel relative z-10 max-h-[85dvh] w-full max-w-md overflow-y-auto p-5">
+      <div
+        className={cn(
+          // overflow-x-hidden: never scroll horizontally inside the modal
+          // (overflow-y-auto alone would compute overflow-x to auto).
+          "panel relative z-10 max-h-[88dvh] w-full overflow-y-auto overflow-x-hidden p-5",
+          size === "xl" ? "max-w-3xl" : size === "lg" ? "max-w-2xl" : "max-w-md",
+        )}
+      >
         <div className="mb-4 flex items-center justify-between gap-3">
           <h2 id="modal-title" className="pixel text-sm text-ink">
             {title}

@@ -40,7 +40,11 @@ async function candidatesFor(
   });
 }
 
-/** Present volunteers of the session that can lead (have sex + birthdate). */
+/**
+ * Volunteers who lead a group this culto: present + flagged leads_group (chosen
+ * in the leaders modal, pre-seeded from the "pequenos grupos" function) + have
+ * sex/birthdate so they can be matched to a same-sex age-sorted block.
+ */
 async function presentVolunteers(
   supabase: Supabase,
   sessionId: string,
@@ -49,7 +53,8 @@ async function presentVolunteers(
     .from("volunteer_attendance")
     .select("volunteer_id")
     .eq("session_id", sessionId)
-    .eq("present", true);
+    .eq("present", true)
+    .eq("leads_group", true);
   const ids = (att ?? []).map((a) => a.volunteer_id);
   if (!ids.length) return [];
 

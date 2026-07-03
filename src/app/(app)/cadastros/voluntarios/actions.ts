@@ -16,12 +16,20 @@ function cleanSex(v: FormDataEntryValue | null): "M" | "F" | null {
   return v === "M" || v === "F" ? v : null;
 }
 
+/** FormData → validated object; `functions` comes from repeated checkbox fields. */
+function parseVolunteer(formData: FormData) {
+  return volunteerSchema.safeParse({
+    ...Object.fromEntries(formData),
+    functions: formData.getAll("functions"),
+  });
+}
+
 export async function createVolunteer(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   const ctx = await requireRole("unit_admin");
-  const parsed = volunteerSchema.safeParse(Object.fromEntries(formData));
+  const parsed = parseVolunteer(formData);
   if (!parsed.success) return fieldErrorsFrom(parsed.error);
 
   const unitId = ctx.profile.unit_id ?? ((formData.get("unit_id") as string) || null);
@@ -34,6 +42,7 @@ export async function createVolunteer(
     phone: clean(formData.get("phone")),
     sex: cleanSex(formData.get("sex")),
     birthdate: clean(formData.get("birthdate")),
+    functions: parsed.data.functions,
   });
 
   if (error) return { error: "Não foi possível salvar o voluntário." };
@@ -48,7 +57,7 @@ export async function updateVolunteer(
   formData: FormData,
 ): Promise<FormState> {
   await requireRole("unit_admin");
-  const parsed = volunteerSchema.safeParse(Object.fromEntries(formData));
+  const parsed = parseVolunteer(formData);
   if (!parsed.success) return fieldErrorsFrom(parsed.error);
 
   const supabase = await createClient();
@@ -59,6 +68,7 @@ export async function updateVolunteer(
       phone: clean(formData.get("phone")),
       sex: cleanSex(formData.get("sex")),
       birthdate: clean(formData.get("birthdate")),
+      functions: parsed.data.functions,
     })
     .eq("id", id);
 

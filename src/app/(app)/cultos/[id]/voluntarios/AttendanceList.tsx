@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useOptimistic, useState, useTransition } from "react";
+import { useEffect, useMemo, useOptimistic, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Check, HeartHandshake, Search, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
-import { toggleVolunteerAttendance, quickCreateVolunteer } from "../actions";
+import { Modal } from "@/components/ui/Modal";
+import { VolunteerForm } from "@/app/(app)/cadastros/voluntarios/VolunteerForm";
+import { toggleVolunteerAttendance, quickCreateVolunteerFull } from "../actions";
 
 interface Row {
   id: string;
@@ -28,6 +32,29 @@ export function AttendanceList({
   );
   const [pending, startTransition] = useTransition();
   const [q, setQ] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const router = useRouter();
+
+  // Live sync: reflect presence toggles made on another device.
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`vol-att-${sessionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "volunteer_attendance",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        () => router.refresh(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId, router]);
 
   const presentCount = rows.filter((r) => r.present).length;
   const term = q.trim().toLowerCase();
@@ -112,24 +139,36 @@ export function AttendanceList({
               ? "Nenhum voluntário cadastrado nesta unidade."
               : `Nenhum voluntário encontrado com “${q.trim()}”.`}
           </p>
-          {term ? (
-            <Button
-              size="sm"
-              variant="gold"
-              disabled={pending}
-              onClick={() =>
-                startTransition(async () => {
-                  await quickCreateVolunteer(sessionId, q.trim());
-                  setQ("");
-                })
-              }
-            >
-              <UserPlus className="h-4 w-4" strokeWidth={2.5} /> Cadastrar “
-              {q.trim()}” e marcar presente
-            </Button>
-          ) : null}
+          <Button
+            size="sm"
+            variant="gold"
+            disabled={pending}
+            onClick={() => setCreateOpen(true)}
+          >
+            <UserPlus className="h-4 w-4" strokeWidth={2.5} /> Cadastrar
+            voluntário{term ? ` “${q.trim()}”` : ""}
+          </Button>
         </div>
       )}
+
+      {createOpen ? (
+        <Modal
+          open
+          onClose={() => setCreateOpen(false)}
+          title="Cadastrar voluntário"
+        >
+          <VolunteerForm
+            action={quickCreateVolunteerFull.bind(null, sessionId)}
+            initialName={term}
+            submitLabel="Cadastrar e marcar presente"
+            onSuccess={() => {
+              setCreateOpen(false);
+              setQ("");
+              router.refresh();
+            }}
+          />
+        </Modal>
+      ) : null}
     </div>
   );
 }

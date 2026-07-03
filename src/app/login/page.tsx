@@ -15,7 +15,7 @@ export default function LoginPage() {
           <div className="relative flex flex-col items-center gap-4">
             <Wordmark size="lg" />
             <p className="font-display text-[0.7rem] leading-relaxed text-muted [word-spacing:-0.1em]">
-              Check-in · Igreja Aponte
+              Check-in · Igreja A Ponte
             </p>
           </div>
         </div>

@@ -1,25 +1,12 @@
 "use client";
 
 import { useActionState } from "react";
-import { Card, CardTitle } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { EMPTY_FORM_STATE, type FormState } from "@/lib/forms";
-import { updateProfileName, updateEmail, updatePassword } from "./actions";
-
-type Action = (prev: FormState, formData: FormData) => Promise<FormState>;
-
-function Status({ state, okMsg }: { state: FormState; okMsg: string }) {
-  if (state.error)
-    return <p className="text-sm font-medium text-redstone">{state.error}</p>;
-  if (state.ok)
-    return <p className="text-sm font-medium text-grass">{okMsg}</p>;
-  return null;
-}
-
-function useAction(action: Action) {
-  return useActionState(action, EMPTY_FORM_STATE);
-}
+import { EMPTY_FORM_STATE } from "@/lib/forms";
+import { updateAccount } from "./actions";
 
 export function AccountForms({
   initialName,
@@ -28,64 +15,56 @@ export function AccountForms({
   initialName: string;
   currentEmail: string;
 }) {
-  const [nameState, nameAction] = useAction(updateProfileName);
-  const [emailState, emailAction] = useAction(updateEmail);
-  const [pwState, pwAction] = useAction(updatePassword);
+  const [state, formAction] = useActionState(updateAccount, EMPTY_FORM_STATE);
+  const fe = state.fieldErrors;
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card>
-        <CardTitle className="mb-4">Perfil</CardTitle>
-        <form action={nameAction} className="flex flex-col gap-4">
-          <Field label="Nome" error={nameState.fieldErrors?.full_name}>
-            <Input name="full_name" defaultValue={initialName} required />
-          </Field>
-          <Status state={nameState} okMsg="Nome atualizado!" />
-          <SubmitButton variant="grass">Salvar nome</SubmitButton>
-        </form>
-      </Card>
+    <Card className="max-w-xl">
+      <form action={formAction} className="flex flex-col gap-4">
+        <Field label="Nome" error={fe?.full_name} required>
+          <Input name="full_name" defaultValue={initialName} required />
+        </Field>
 
-      <Card>
-        <CardTitle className="mb-4">E-mail</CardTitle>
-        <form action={emailAction} className="flex flex-col gap-4">
+        <Field
+          label="E-mail de acesso"
+          error={fe?.email}
+          required
+          hint="Se mudar, você receberá um e-mail para confirmar."
+        >
+          <Input type="email" name="email" defaultValue={currentEmail} required />
+        </Field>
+
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field
-            label="E-mail de acesso"
-            error={emailState.fieldErrors?.email}
-            hint="Você receberá um e-mail para confirmar a troca."
+            label="Nova senha"
+            error={fe?.password}
+            optional
+            hint="Deixe em branco para manter."
           >
-            <Input
-              type="email"
-              name="email"
-              defaultValue={currentEmail}
-              required
-            />
-          </Field>
-          <Status
-            state={emailState}
-            okMsg="Confirme pelo link enviado ao novo e-mail."
-          />
-          <SubmitButton variant="grass">Alterar e-mail</SubmitButton>
-        </form>
-      </Card>
-
-      <Card className="lg:col-span-2">
-        <CardTitle className="mb-4">Senha</CardTitle>
-        <form action={pwAction} className="flex max-w-md flex-col gap-4">
-          <Field label="Nova senha" error={pwState.fieldErrors?.password}>
-            <Input type="password" name="password" autoComplete="new-password" required />
-          </Field>
-          <Field label="Confirmar senha" error={pwState.fieldErrors?.confirm}>
-            <Input
-              type="password"
-              name="confirm"
+            <PasswordInput
+              name="password"
               autoComplete="new-password"
-              required
+              placeholder="Mínimo 6 caracteres"
             />
           </Field>
-          <Status state={pwState} okMsg="Senha alterada!" />
-          <SubmitButton variant="grass">Alterar senha</SubmitButton>
-        </form>
-      </Card>
-    </div>
+          <Field label="Confirmar senha" error={fe?.confirm} optional>
+            <PasswordInput name="confirm" autoComplete="new-password" />
+          </Field>
+        </div>
+
+        {state.error ? (
+          <p className="text-sm font-medium text-redstone">{state.error}</p>
+        ) : null}
+        {state.ok ? (
+          <p className="text-sm font-medium text-grass">
+            Alterações salvas!
+          </p>
+        ) : null}
+
+        <SubmitButton variant="grass" className="self-start">
+          Salvar alterações
+        </SubmitButton>
+      </form>
+    </Card>
   );
 }

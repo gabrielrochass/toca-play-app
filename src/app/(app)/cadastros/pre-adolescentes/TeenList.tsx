@@ -5,13 +5,16 @@ import { Pencil } from "lucide-react";
 import { SexIcon } from "@/components/ui/SexIcon";
 import { TeenDetailModal, type TeenDetail } from "@/components/TeenDetailModal";
 import { ageAt } from "@/lib/age";
+import { setTeenActive } from "./actions";
 
 export function TeenList({
   teens,
   refDate,
+  showInactive = false,
 }: {
   teens: TeenDetail[];
   refDate: string;
+  showInactive?: boolean;
 }) {
   const [selected, setSelected] = useState<TeenDetail | null>(null);
 
@@ -48,6 +51,8 @@ export function TeenList({
         teen={selected}
         refDate={refDate}
         onClose={() => setSelected(null)}
+        onRemove={showInactive ? undefined : (id) => setTeenActive(id, false)}
+        onReactivate={showInactive ? (id) => setTeenActive(id, true) : undefined}
       />
     </>
   );

@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
+import { InactiveToggle } from "@/components/ui/InactiveToggle";
 
 const SEX_OPTIONS = [
   { value: "", label: "Todos" },
@@ -60,6 +61,8 @@ export function TeenFilters({ ages }: { ages: number[] }) {
           </option>
         ))}
       </select>
+
+      <InactiveToggle />
     </div>
   );
 }

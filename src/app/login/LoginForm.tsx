@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 
 export function LoginForm() {
   const router = useRouter();
@@ -38,7 +39,7 @@ export function LoginForm() {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
-      <Field label="E-mail">
+      <Field label="E-mail" required>
         <Input
           type="email"
           name="email"
@@ -49,9 +50,8 @@ export function LoginForm() {
           placeholder="voce@igrejaaponte.com"
         />
       </Field>
-      <Field label="Senha">
-        <Input
-          type="password"
+      <Field label="Senha" required>
+        <PasswordInput
           name="password"
           autoComplete="current-password"
           required

@@ -2,66 +2,82 @@
 
 import { MessageCircle } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { guardianMessage, waLink } from "@/lib/whatsapp";
+import { guardianMessage, birthdayMessage, waLink } from "@/lib/whatsapp";
+
+export interface NotifyGuardian {
+  name: string;
+  phone: string;
+}
 
 export interface NotifyTeen {
   id: string;
   name: string;
-  guardianName: string;
-  guardianPhone: string;
+  guardians: NotifyGuardian[];
 }
 
 export function NotifyGuardiansModal({
   teens,
+  variant = "end",
   onClose,
 }: {
   teens: NotifyTeen[];
+  /** "end" = culto acabou; "birthday" = aniversário. Picks the message. */
+  variant?: "end" | "birthday";
   onClose: () => void;
 }) {
+  const title =
+    variant === "birthday" ? "Parabenizar responsáveis" : "Notificar responsáveis";
+  const intro =
+    variant === "birthday"
+      ? "Envie um feliz aniversário. Escolha qual responsável avisar pelo WhatsApp."
+      : "Avisa que o culto terminou e o filho está esperando. Escolha qual responsável avisar pelo WhatsApp.";
+  const buildMessage =
+    variant === "birthday" ? birthdayMessage : guardianMessage;
+
   return (
-    <Modal open onClose={onClose} title="Notificar responsáveis">
+    <Modal open onClose={onClose} title={title}>
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-muted">
-          Avisa que o culto terminou e o filho está esperando. Toque em cada
-          responsável para enviar pelo WhatsApp.
-        </p>
+        <p className="text-sm text-muted">{intro}</p>
 
         {teens.length === 0 ? (
-          <p className="text-sm text-muted">Ninguém presente para notificar.</p>
+          <p className="text-sm text-muted">Ninguém para notificar.</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {teens.map((t) => {
-              const link = waLink(
-                t.guardianPhone,
-                guardianMessage(t.name, t.guardianName),
-              );
-              return (
-                <li
-                  key={t.id}
-                  className="block-flat flex items-center gap-3 p-2.5"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium text-ink">{t.name}</div>
-                    <div className="truncate text-xs text-muted">
-                      {t.guardianName} · {t.guardianPhone || "sem telefone"}
-                    </div>
-                  </div>
-                  {link ? (
-                    <a
-                      href={link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mc-btn mc-btn-sm mc-btn-grass"
-                    >
-                      <MessageCircle className="h-4 w-4" strokeWidth={2.5} />
-                      WhatsApp
-                    </a>
-                  ) : (
-                    <span className="text-xs text-muted">sem telefone</span>
-                  )}
-                </li>
-              );
-            })}
+            {teens.map((t) => (
+              <li key={t.id} className="block-flat flex flex-col gap-2 p-2.5">
+                <div className="truncate font-medium text-ink">{t.name}</div>
+                <div className="flex flex-col gap-1.5">
+                  {t.guardians.map((g, i) => {
+                    const link = waLink(g.phone, buildMessage(t.name, g.name));
+                    return (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between gap-3"
+                      >
+                        <div className="min-w-0 text-xs text-muted">
+                          {g.name} · {g.phone || "sem telefone"}
+                        </div>
+                        {link ? (
+                          <a
+                            href={link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mc-btn mc-btn-sm mc-btn-grass shrink-0"
+                          >
+                            <MessageCircle className="h-4 w-4" strokeWidth={2.5} />
+                            WhatsApp
+                          </a>
+                        ) : (
+                          <span className="shrink-0 text-xs text-muted">
+                            sem telefone
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </li>
+            ))}
           </ul>
         )}
       </div>

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireSession, hasAtLeast } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ageAt } from "@/lib/age";
+import { firstTimerTeenIds } from "@/lib/attendance";
 import { NotesEditor } from "./NotesEditor";
 import { CheckinBoard, type BoardCheckin } from "./CheckinBoard";
 
@@ -23,7 +24,7 @@ export default async function CheckinPage({
 
   const { data: rawCheckins } = await supabase
     .from("checkins")
-    .select("id, teen_id, status")
+    .select("id, teen_id, status, guardian_id")
     .eq("session_id", id)
     .order("check_in_time");
 
@@ -37,9 +38,30 @@ export default async function CheckinPage({
 
   const teenMap = new Map((teens ?? []).map((t) => [t.id, t]));
 
+  // Guardian lookup by id — to resolve today's chosen responsável per check-in.
+  const guardianById = new Map<string, { name: string; phone: string }>();
+  if (teenIds.length) {
+    const { data: gRows } = await supabase
+      .from("teen_guardians")
+      .select("id, name, phone")
+      .in("teen_id", teenIds);
+    for (const g of gRows ?? []) {
+      guardianById.set(g.id, { name: g.name, phone: g.phone });
+    }
+  }
+
+  const firstTimers = await firstTimerTeenIds(
+    supabase,
+    session.unit_id,
+    session.session_date,
+    teenIds,
+  );
+
   const checkins: BoardCheckin[] = (rawCheckins ?? []).flatMap((c) => {
     const t = teenMap.get(c.teen_id);
     if (!t) return [];
+    // Today's responsável: the one chosen at check-in, else the primary.
+    const chosen = c.guardian_id ? guardianById.get(c.guardian_id) : undefined;
     return [
       {
         id: c.id,
@@ -47,10 +69,12 @@ export default async function CheckinPage({
         displayId: t.display_id,
         name: t.name,
         sex: t.sex,
+        birthdate: t.birthdate,
         age: ageAt(t.birthdate, session.session_date),
         status: c.status,
-        guardianName: t.guardian_name,
-        guardianPhone: t.guardian_phone,
+        guardianName: chosen?.name ?? t.guardian_name,
+        guardianPhone: chosen?.phone ?? t.guardian_phone,
+        isFirstTime: firstTimers.has(c.teen_id),
       },
     ];
   });

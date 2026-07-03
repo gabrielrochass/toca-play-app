@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRODUCT_CATEGORIES } from "@/lib/utils";
 
 const phone = z
   .string()
@@ -14,6 +15,26 @@ const isoDate = z
 
 export const sexEnum = z.enum(["M", "F"], { message: "Selecione o sexo" });
 export const roleEnum = z.enum(["global_admin", "unit_admin", "volunteer"]);
+export const volunteerFunctionEnum = z.enum([
+  "ministro_culto",
+  "gerencia",
+  "recepcao",
+  "diversao",
+  "louvor",
+  "pequenos_grupos",
+]);
+export type VolunteerFunction = z.infer<typeof volunteerFunctionEnum>;
+
+const optionalText = (max: number) =>
+  z.string().trim().max(max).optional().or(z.literal(""));
+
+/** One responsável. The first in the list is the primary guardian. */
+export const guardianSchema = z.object({
+  name: z.string().trim().min(2, "Informe o responsável"),
+  phone,
+  relationship: optionalText(40),
+});
+export type GuardianInput = z.infer<typeof guardianSchema>;
 
 export const teenSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome"),
@@ -22,8 +43,16 @@ export const teenSchema = z.object({
     "Data de nascimento não pode ser no futuro",
   ),
   sex: sexEnum,
-  guardian_name: z.string().trim().min(2, "Informe o responsável"),
-  guardian_phone: phone,
+  guardians: z
+    .array(guardianSchema)
+    .min(1, "Informe ao menos um responsável")
+    .max(6, "Máximo de 6 responsáveis"),
+  cep: optionalText(12),
+  street: optionalText(200),
+  neighborhood: optionalText(120),
+  city: optionalText(120),
+  state: optionalText(2),
+  observations: optionalText(2000),
 });
 export type TeenInput = z.infer<typeof teenSchema>;
 
@@ -32,8 +61,24 @@ export const volunteerSchema = z.object({
   phone: phone.optional().or(z.literal("")),
   sex: sexEnum.optional().or(z.literal("")),
   birthdate: isoDate.optional().or(z.literal("")),
+  functions: z.array(volunteerFunctionEnum).default([]),
 });
 export type VolunteerInput = z.infer<typeof volunteerSchema>;
+
+export const productSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome do produto"),
+  category: z.enum(PRODUCT_CATEGORIES, { message: "Selecione a categoria" }),
+  unit_label: z.string().trim().min(1).max(12).default("un"),
+  min_quantity: z.coerce.number().int().min(0, "Mínimo inválido").default(0),
+  quantity: z.coerce.number().int().min(0, "Quantidade inválida").default(0),
+});
+export type ProductInput = z.infer<typeof productSchema>;
+
+export const stockMovementSchema = z.object({
+  delta: z.coerce.number().int().refine((n) => n !== 0, "Informe uma quantidade"),
+  reason: optionalText(200),
+});
+export type StockMovementInput = z.infer<typeof stockMovementSchema>;
 
 export const sessionSchema = z.object({
   session_date: isoDate,

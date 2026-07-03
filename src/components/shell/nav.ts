@@ -5,6 +5,7 @@ import {
   HeartHandshake,
   BarChart3,
   UserCog,
+  Package,
   type LucideIcon,
 } from "lucide-react";
 import type { AppRole } from "@/types/database";
@@ -37,6 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
     icon: HeartHandshake,
     mobile: true,
   },
+  { href: "/estoque", label: "Estoque", icon: Package, mobile: true },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3, mobile: true },
   {
     href: "/config/usuarios",

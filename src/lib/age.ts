@@ -15,3 +15,24 @@ export function ageAt(birthdate: string | Date, asOf: string | Date): number {
   }
   return age;
 }
+
+/**
+ * True when `asOf` falls on the teen's birthday (same day + month). Compares the
+ * ISO date parts directly so it never drifts by timezone. Feb-29 birthdays fall
+ * on Feb-29 only (non-leap years simply don't match — intentional, no fudging).
+ */
+export function isBirthday(
+  birthdate: string | Date,
+  asOf: string | Date,
+): boolean {
+  const b = typeof birthdate === "string" ? birthdate.slice(0, 10) : toISO(birthdate);
+  const ref = typeof asOf === "string" ? asOf.slice(0, 10) : toISO(asOf);
+  return b.slice(5) === ref.slice(5); // MM-DD == MM-DD
+}
+
+function toISO(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}

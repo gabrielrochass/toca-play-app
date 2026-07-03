@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ageAt } from "@/lib/age";
-import { GroupsBoard, type GroupView } from "./GroupsBoard";
+import { firstTimerTeenIds } from "@/lib/attendance";
+import { GroupsBoard, type GroupView, type LeaderRow } from "./GroupsBoard";
 
 export default async function GruposTab({
   params,
@@ -15,7 +16,7 @@ export default async function GruposTab({
 
   const { data: session } = await supabase
     .from("sessions")
-    .select("session_date")
+    .select("session_date, unit_id")
     .eq("id", id)
     .maybeSingle();
   if (!session) notFound();
@@ -63,6 +64,13 @@ export default async function GruposTab({
     : { data: [] };
   const teenMap = new Map((teens ?? []).map((t) => [t.id, t]));
 
+  const firstTimers = await firstTimerTeenIds(
+    supabase,
+    session.unit_id,
+    sessionDate,
+    memberTeenIds,
+  );
+
   const groupViews: GroupView[] = (groups ?? []).map((g) => ({
     id: g.id,
     label: g.label ?? "Grupo",
@@ -87,6 +95,7 @@ export default async function GruposTab({
             guardianName: t.guardian_name,
             guardianPhone: t.guardian_phone,
             assignedManually: m.assigned_manually,
+            isFirstTime: firstTimers.has(t.id),
           },
         ];
       })
@@ -96,6 +105,31 @@ export default async function GruposTab({
   const groupedCount = (members ?? []).length;
   const ungroupedCount = Math.max(0, totalCheckins - groupedCount);
 
+  // Present volunteers this culto, for the "Líderes" modal.
+  const { data: att } = await supabase
+    .from("volunteer_attendance")
+    .select("volunteer_id, leads_group")
+    .eq("session_id", id)
+    .eq("present", true);
+  const presentIds = (att ?? []).map((a) => a.volunteer_id);
+  const leadsSet = new Set(
+    (att ?? []).filter((a) => a.leads_group).map((a) => a.volunteer_id),
+  );
+  const { data: presentVols } = presentIds.length
+    ? await supabase
+        .from("volunteers")
+        .select("id, name, sex, birthdate, functions")
+        .in("id", presentIds)
+        .order("name")
+    : { data: [] };
+  const leaderRows: LeaderRow[] = (presentVols ?? []).map((v) => ({
+    id: v.id,
+    name: v.name,
+    canLead: Boolean(v.sex && v.birthdate),
+    isPequenosGrupos: (v.functions ?? []).includes("pequenos_grupos"),
+    leads: leadsSet.has(v.id),
+  }));
+
   return (
     <GroupsBoard
       sessionId={id}
@@ -103,6 +137,7 @@ export default async function GruposTab({
       groups={groupViews}
       ungroupedCount={ungroupedCount}
       totalCheckins={totalCheckins}
+      leaders={leaderRows}
     />
   );
 }

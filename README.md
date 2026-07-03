@@ -35,7 +35,13 @@ Comandos úteis:
 | `npm run db:reset` | Recria o banco local aplicando migrations + seed |
 | `npm run gen:types` | Regenera `src/types/database.ts` a partir do banco local |
 | `npm run test:grouping` | Testa o algoritmo de pequenos grupos |
+| `npm run verify:rls` | Verifica o isolamento por unidade (RLS) com sessões reais |
+| `npm run verify:concurrency` | Verifica uso simultâneo (check-in duplicado, IDs, estoque, isolamento) |
 | `npm run typecheck` / `npm run lint` | Checagens estáticas |
+
+> `src/types/database.ts` é **escrito à mão** (o app depende dos aliases `Sex`,
+> `Unit`, `Teen`…). Ao criar uma migration nova, atualize esse arquivo à mão —
+> **não** rode `supabase gen types` por cima (ele apaga os aliases).
 
 ### Papéis
 
@@ -75,3 +81,23 @@ no servidor; a chave nunca vai ao cliente).
   `server-only`) para provisionar usuários.
 - Ao mudar a unidade/papel de um usuário, o novo claim vale a partir do próximo
   login (peça para a pessoa sair e entrar de novo).
+
+## Uso simultâneo (3 unidades)
+
+O app é feito para ser usado ao mesmo tempo nas 3 igrejas. As garantias são de
+banco, não de aplicação:
+
+- **Check-in sem duplicata:** `unique (session_id, teen_id)` — dois check-ins
+  simultâneos do mesmo pré-adolescente resultam em um só (o outro recebe erro
+  amigável).
+- **IDs sem buraco:** o contador `next_teen_display_id` usa lock de linha, então
+  cadastros simultâneos na mesma unidade geram IDs sequenciais e únicos.
+- **Estoque sem perda de escrita:** movimentos passam por `record_stock_movement`
+  (`quantity = quantity + delta` atômico), então recepções simultâneas somam
+  corretamente.
+- **Isolamento:** RLS + FKs compostas `(unit_id, id)` impedem que uma unidade veja
+  ou altere dados de outra, mesmo sob carga paralela.
+- As telas de check-in, grupos e voluntários assinam o **Realtime**, então
+  aparelhos diferentes veem as mudanças ao vivo.
+
+Rode `npm run verify:concurrency` para checar os quatro cenários de uma vez.

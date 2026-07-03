@@ -108,3 +108,41 @@ export function volunteersPerSession(
     filters,
   );
 }
+
+export interface SexSessionPoint {
+  label: string;
+  m: number;
+  f: number;
+}
+
+/** Present teens per culto, split by sex — for the by-sex report. */
+export async function teensBySexPerSession(
+  supabase: Supabase,
+  unitId?: string | null,
+  filters: SessionFilters = {},
+  limit = 24,
+): Promise<SexSessionPoint[]> {
+  let query = supabase
+    .from("v_session_attendance_by_sex")
+    .select("session_date, service_label, teens_m, teens_f")
+    .order("session_date", { ascending: false })
+    .order("service_label")
+    .limit(limit);
+  if (unitId) query = query.eq("unit_id", unitId);
+  if (filters.service) query = query.eq("service_label", filters.service);
+  const range = dateRangeFor({ day: filters.day, month: filters.month });
+  if (range.gte) query = query.gte("session_date", range.gte);
+  if (range.lte) query = query.lte("session_date", range.lte);
+
+  const rows = (await query).data as unknown as Array<Record<string, unknown>>;
+
+  return (rows ?? []).reverse().map((r) => {
+    const date = r.session_date as string | null;
+    const service = (r.service_label as string | null) ?? "";
+    return {
+      label: date ? `${formatDateBR(date).slice(0, 5)} ${service}` : "—",
+      m: (r.teens_m as number | null) ?? 0,
+      f: (r.teens_f as number | null) ?? 0,
+    };
+  });
+}

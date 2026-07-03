@@ -10,3 +10,11 @@ export const CHART_COLORS = {
   diamond: "#3bb6ae",
   terra: "#cf6c3a",
 } as const;
+
+// Categorical pair for the by-sex chart (M vs F). Validated for CVD + dark
+// surface via the dataviz validator; bars are also legend-labelled, so identity
+// never rests on color alone.
+export const SEX_COLORS = {
+  M: "#00a99b", // meninos — teal
+  F: "#cf6c3a", // meninas — terracotta
+} as const;

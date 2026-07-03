@@ -40,7 +40,7 @@ export function SessionForm({
   return (
     <form action={formAction} className="flex flex-col gap-5">
       {units ? (
-        <Field label="Unidade" error={fe?.unit_id}>
+        <Field label="Unidade" error={fe?.unit_id} required>
           <input type="hidden" name="unit_id" value={unitId} />
           <div className="flex flex-wrap gap-2">
             {units.map((u) => (
@@ -66,11 +66,11 @@ export function SessionForm({
         </Field>
       ) : null}
 
-      <Field label="Data do culto" error={fe?.session_date}>
+      <Field label="Data do culto" error={fe?.session_date} required>
         <DatePicker name="session_date" defaultValue={defaultDate} />
       </Field>
 
-      <Field label="Horário do culto" error={fe?.service_id}>
+      <Field label="Horário do culto" error={fe?.service_id} required>
         <input type="hidden" name="service_id" value={serviceId} />
         {unitServices.length ? (
           <div className="flex flex-wrap gap-2">
@@ -98,7 +98,7 @@ export function SessionForm({
         )}
       </Field>
 
-      <Field label="Observações (opcional)" error={fe?.notes}>
+      <Field label="Observações" error={fe?.notes} optional>
         <textarea
           name="notes"
           rows={3}

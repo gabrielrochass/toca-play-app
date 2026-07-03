@@ -5,6 +5,7 @@ import { getUnitScope } from "@/lib/unitScope";
 import { createClient } from "@/lib/supabase/server";
 import { teensPerSession } from "@/lib/analytics/queries";
 import { formatDateBR, toISODate } from "@/lib/utils";
+import { isBirthday } from "@/lib/age";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatTile } from "@/components/ui/StatTile";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,11 @@ import { Card, CardTitle } from "@/components/ui/Card";
 import { ChartCard } from "@/components/charts/ChartCard";
 import { LineChartMc } from "@/components/charts/Charts";
 import { CHART_COLORS } from "@/components/charts/palette";
+import {
+  DashboardAlerts,
+  type BirthdayTeen,
+  type LowStockItem,
+} from "./DashboardAlerts";
 
 export default async function DashboardPage() {
   const ctx = await requireSession();
@@ -51,6 +57,58 @@ export default async function DashboardPage() {
     : { data: [] };
   const labelOf = new Map((services ?? []).map((s) => [s.id, s.label]));
 
+  // --- Alerts: birthdays today + low stock -------------------------------
+  let teenBdayQ = supabase
+    .from("teens")
+    .select("id, name, birthdate")
+    .eq("is_active", true);
+  let productsQ = supabase
+    .from("products")
+    .select("id, name, quantity, min_quantity, unit_label")
+    .eq("is_active", true);
+  if (scope.unitId) {
+    teenBdayQ = teenBdayQ.eq("unit_id", scope.unitId);
+    productsQ = productsQ.eq("unit_id", scope.unitId);
+  }
+  const [{ data: allTeens }, { data: allProducts }] = await Promise.all([
+    teenBdayQ,
+    productsQ,
+  ]);
+
+  const bdayTeens = (allTeens ?? []).filter((t) =>
+    isBirthday(t.birthdate, todayISO),
+  );
+  let birthdays: BirthdayTeen[] = [];
+  if (bdayTeens.length) {
+    const bdayIds = bdayTeens.map((t) => t.id);
+    const { data: gRows } = await supabase
+      .from("teen_guardians")
+      .select("teen_id, name, phone")
+      .in("teen_id", bdayIds)
+      .order("sort_order");
+    const byTeen = new Map<string, { name: string; phone: string }[]>();
+    for (const g of gRows ?? []) {
+      const arr = byTeen.get(g.teen_id) ?? [];
+      arr.push({ name: g.name, phone: g.phone });
+      byTeen.set(g.teen_id, arr);
+    }
+    birthdays = bdayTeens.map((t) => ({
+      id: t.id,
+      name: t.name,
+      guardians: byTeen.get(t.id) ?? [],
+    }));
+  }
+
+  const lowStock: LowStockItem[] = (allProducts ?? [])
+    .filter((p) => p.quantity <= p.min_quantity)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      quantity: p.quantity,
+      min_quantity: p.min_quantity,
+      unit_label: p.unit_label,
+    }));
+
   const firstName = ctx.profile.full_name.split(" ")[0];
 
   return (
@@ -58,6 +116,12 @@ export default async function DashboardPage() {
       <PageHeader
         title={`Olá, ${firstName}!`}
         subtitle={`Hoje é ${formatDateBR(todayISO)}.`}
+      />
+
+      <DashboardAlerts
+        birthdays={birthdays}
+        lowStock={lowStock}
+        dateKey={todayISO}
       />
 
       {/* Today's culto */}

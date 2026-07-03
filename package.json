@@ -14,7 +14,8 @@
     "gen:types": "supabase gen types typescript --local > src/types/database.ts",
     "create-admin": "node --env-file=.env.local scripts/create-admin.mjs",
     "test:grouping": "tsx scripts/test-grouping.ts",
-    "verify:rls": "node --env-file=.env.local scripts/verify-rls.mjs"
+    "verify:rls": "node --env-file=.env.local scripts/verify-rls.mjs",
+    "verify:concurrency": "node --env-file=.env.local scripts/verify-concurrency.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

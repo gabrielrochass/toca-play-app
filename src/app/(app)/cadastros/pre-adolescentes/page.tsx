@@ -15,18 +15,19 @@ import type { TeenDetail } from "@/components/TeenDetailModal";
 export default async function PreAdolescentesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; sexo?: string; idade?: string }>;
+  searchParams: Promise<{ q?: string; sexo?: string; idade?: string; inativos?: string }>;
 }) {
   const ctx = await requireSession();
   const scope = await getUnitScope(ctx);
-  const { q, sexo, idade } = await searchParams;
+  const { q, sexo, idade, inativos } = await searchParams;
   const supabase = await createClient();
   const today = toISODate(new Date());
+  const showInactive = inativos === "1";
 
   let query = supabase
     .from("teens")
     .select("*")
-    .eq("is_active", true)
+    .eq("is_active", !showInactive)
     .order("name");
   if (scope.unitId) query = query.eq("unit_id", scope.unitId);
   if (sexo === "M" || sexo === "F") query = query.eq("sex", sexo);
@@ -42,10 +43,43 @@ export default async function PreAdolescentesPage({
   const ages = [...new Set(withAge.map((t) => t.age))].sort((a, b) => a - b);
 
   const idadeNum = idade ? Number(idade) : null;
-  const teens: TeenDetail[] =
+  const filtered =
     idadeNum != null ? withAge.filter((t) => t.age === idadeNum) : withAge;
 
-  const hasFilter = Boolean(q || sexo || idade);
+  // Full guardian list for the shown teens (one query, grouped in JS).
+  const ids = filtered.map((t) => t.id);
+  const guardiansByTeen = new Map<
+    string,
+    { name: string; phone: string; relationship: string | null }[]
+  >();
+  if (ids.length) {
+    const { data: gRows } = await supabase
+      .from("teen_guardians")
+      .select("teen_id, name, phone, relationship")
+      .in("teen_id", ids)
+      .order("sort_order");
+    for (const g of gRows ?? []) {
+      const arr = guardiansByTeen.get(g.teen_id) ?? [];
+      arr.push({ name: g.name, phone: g.phone, relationship: g.relationship });
+      guardiansByTeen.set(g.teen_id, arr);
+    }
+  }
+
+  const teens: TeenDetail[] = filtered.map((t) => ({
+    id: t.id,
+    display_id: t.display_id,
+    name: t.name,
+    sex: t.sex,
+    birthdate: t.birthdate,
+    guardian_name: t.guardian_name,
+    guardian_phone: t.guardian_phone,
+    guardians: guardiansByTeen.get(t.id),
+    neighborhood: t.neighborhood,
+    observations: t.observations,
+    is_active: t.is_active,
+  }));
+
+  const hasFilter = Boolean(q || sexo || idade || showInactive);
 
   return (
     <>
@@ -75,7 +109,13 @@ export default async function PreAdolescentesPage({
 
       {teens.length === 0 ? (
         <EmptyState
-          title={hasFilter ? "Ninguém encontrado" : "Ninguém cadastrado ainda"}
+          title={
+            showInactive
+              ? "Nenhum inativo"
+              : hasFilter
+                ? "Ninguém encontrado"
+                : "Ninguém cadastrado ainda"
+          }
           hint={
             hasFilter
               ? "Ajuste os filtros ou a busca."
@@ -83,7 +123,7 @@ export default async function PreAdolescentesPage({
           }
         />
       ) : (
-        <TeenList teens={teens} refDate={today} />
+        <TeenList teens={teens} refDate={today} showInactive={showInactive} />
       )}
     </>
   );
