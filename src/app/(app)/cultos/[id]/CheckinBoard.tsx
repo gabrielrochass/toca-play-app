@@ -511,7 +511,7 @@ function ChooseGuardianModal({
                 className={cn(
                   "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
                   sel === g.id
-                    ? "border-grass-dark bg-grass text-[#10240a]"
+                    ? "border-grass-dark bg-(--color-grass-fill) text-[#10240a]"
                     : "border-night-600 text-transparent",
                 )}
               >

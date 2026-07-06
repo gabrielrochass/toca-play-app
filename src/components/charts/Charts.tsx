@@ -13,8 +13,10 @@ import {
   Legend,
 } from "recharts";
 
-const GRID = "#33265a";
-const AXIS = "#ab9fce";
+// Theme-aware: resolved from CSS vars set per data-theme in globals.css.
+const GRID = "var(--chart-grid)";
+const AXIS = "var(--chart-axis)";
+const CURSOR = "var(--chart-cursor)";
 
 interface TooltipEntry {
   color?: string;
@@ -128,7 +130,7 @@ export function BarChartMc<T extends object>({
         <CartesianGrid stroke={GRID} strokeDasharray="2 4" vertical={false} />
         <XAxis dataKey="label" {...axisProps} interval="preserveStartEnd" minTickGap={12} />
         <YAxis width={34} allowDecimals={false} {...axisProps} axisLine={false} />
-        <Tooltip content={<McTooltip />} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
+        <Tooltip content={<McTooltip />} cursor={{ fill: CURSOR }} />
         <Bar dataKey={dataKey} fill={color} maxBarSize={40} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
@@ -149,7 +151,7 @@ export function GroupedBarChartMc<T extends object>({
         <CartesianGrid stroke={GRID} strokeDasharray="2 4" vertical={false} />
         <XAxis dataKey="label" {...axisProps} interval="preserveStartEnd" minTickGap={12} />
         <YAxis width={34} allowDecimals={false} {...axisProps} axisLine={false} />
-        <Tooltip content={<McMultiTooltip />} cursor={{ fill: "rgba(255,255,255,0.05)" }} />
+        <Tooltip content={<McMultiTooltip />} cursor={{ fill: CURSOR }} />
         <Legend
           wrapperStyle={{ fontSize: 12, color: AXIS }}
           iconType="square"

@@ -1,10 +1,14 @@
 import { Suspense } from "react";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LoginForm } from "./LoginForm";
 
 export default function LoginPage() {
   return (
     <div className="grid min-h-dvh place-items-center p-4">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm">
         {/* Hero: wordmark over a torch glow */}
         <div className="relative mb-8 text-center">

@@ -6,6 +6,7 @@ import { GuiaLink } from "@/components/shell/GuiaLink";
 import { UnitBadge } from "@/components/shell/UnitBadge";
 import { UnitFilter } from "@/components/shell/UnitFilter";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { signOut } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/utils";
 import type { SessionContext } from "@/lib/auth";
@@ -52,6 +53,7 @@ export function AppShell({
           </div>
           <div className="hidden md:block">{unitControl}</div>
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link
               href="/conta"
               className="hidden rounded-md px-2 py-1 text-right transition-colors hover:bg-night-800 sm:block"
