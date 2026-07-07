@@ -5,11 +5,14 @@
  *   node --env-file=.env.local scripts/verify-rls.mjs
  */
 import { createClient } from "@supabase/supabase-js";
+import { assertLocalDb } from "./assert-local-db.mjs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const PASSWORD = "tocaplay-test-123";
+
+assertLocalDb(); // refuse to run against a non-local (e.g. production) database
 
 let failures = 0;
 const ok = (n) => console.log(`  ok  ${n}`);
