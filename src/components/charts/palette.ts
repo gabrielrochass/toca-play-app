@@ -22,3 +22,13 @@ export const SEX_COLORS = {
   M: "var(--sex-m)", // meninos — teal
   F: "var(--sex-f)", // meninas — terracotta
 } as const;
+
+// Per-unit series colors for the global-admin "compare units" charts. Mirrors
+// the unit tones (CF=grass, BV=diamond/teal, RA=terra) so a unit looks the same
+// in badges, list chips and charts. Theme-aware via the chart CSS vars; the
+// grass/diamond/terra trio is validated for CVD on both surfaces.
+export const UNIT_CHART_COLORS: Record<string, string> = {
+  CF: "var(--unit-cf)",
+  BV: "var(--unit-bv)",
+  RA: "var(--unit-ra)",
+};

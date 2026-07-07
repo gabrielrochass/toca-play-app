@@ -3,8 +3,10 @@ import { requireSession, hasAtLeast } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ageAt } from "@/lib/age";
 import { firstTimerTeenIds } from "@/lib/attendance";
+import { getUnitScope } from "@/lib/unitScope";
 import { NotesEditor } from "./NotesEditor";
 import { CheckinBoard, type BoardCheckin } from "./CheckinBoard";
+import { getSession, getUnit } from "./session";
 
 export default async function CheckinPage({
   params,
@@ -15,12 +17,12 @@ export default async function CheckinPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: session } = await supabase
-    .from("sessions")
-    .select("session_date, notes, unit_id, closed_at")
-    .eq("id", id)
-    .maybeSingle();
+  const session = await getSession(id);
   if (!session) notFound();
+
+  // Global admin: name the campus in WhatsApp messages sent from this culto.
+  const scope = await getUnitScope(ctx);
+  const unitName = scope.canSwitch ? (await getUnit(session.unit_id))?.name ?? null : null;
 
   const { data: rawCheckins } = await supabase
     .from("checkins")
@@ -29,33 +31,32 @@ export default async function CheckinPage({
     .order("check_in_time");
 
   const teenIds = (rawCheckins ?? []).map((c) => c.teen_id);
-  const { data: teens } = teenIds.length
-    ? await supabase
-        .from("teens")
-        .select("id, display_id, name, sex, birthdate, guardian_name, guardian_phone")
-        .in("id", teenIds)
-    : { data: [] };
 
-  const teenMap = new Map((teens ?? []).map((t) => [t.id, t]));
+  // teens, guardians and first-timers all depend only on teenIds — fetch in
+  // parallel instead of three sequential round-trips.
+  const [teens, gRows, firstTimers] = teenIds.length
+    ? await Promise.all([
+        supabase
+          .from("teens")
+          .select("id, display_id, name, sex, birthdate, guardian_name, guardian_phone")
+          .in("id", teenIds)
+          .then((r) => r.data ?? []),
+        supabase
+          .from("teen_guardians")
+          .select("id, name, phone")
+          .in("teen_id", teenIds)
+          .then((r) => r.data ?? []),
+        firstTimerTeenIds(supabase, session.unit_id, session.session_date, teenIds),
+      ])
+    : [[], [], new Set<string>()];
+
+  const teenMap = new Map(teens.map((t) => [t.id, t]));
 
   // Guardian lookup by id — to resolve today's chosen responsável per check-in.
   const guardianById = new Map<string, { name: string; phone: string }>();
-  if (teenIds.length) {
-    const { data: gRows } = await supabase
-      .from("teen_guardians")
-      .select("id, name, phone")
-      .in("teen_id", teenIds);
-    for (const g of gRows ?? []) {
-      guardianById.set(g.id, { name: g.name, phone: g.phone });
-    }
+  for (const g of gRows) {
+    guardianById.set(g.id, { name: g.name, phone: g.phone });
   }
-
-  const firstTimers = await firstTimerTeenIds(
-    supabase,
-    session.unit_id,
-    session.session_date,
-    teenIds,
-  );
 
   const checkins: BoardCheckin[] = (rawCheckins ?? []).flatMap((c) => {
     const t = teenMap.get(c.teen_id);
@@ -85,6 +86,7 @@ export default async function CheckinPage({
       <CheckinBoard
         sessionId={id}
         unitId={session.unit_id}
+        unitName={unitName}
         sessionDate={session.session_date}
         checkins={checkins}
         closed={Boolean(session.closed_at)}

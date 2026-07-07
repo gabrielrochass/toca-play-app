@@ -26,7 +26,9 @@ export default async function PreAdolescentesPage({
 
   let query = supabase
     .from("teens")
-    .select("*")
+    .select(
+      "id, display_id, name, sex, birthdate, guardian_name, guardian_phone, neighborhood, observations, is_active",
+    )
     .eq("is_active", !showInactive)
     .order("name");
   if (scope.unitId) query = query.eq("unit_id", scope.unitId);

@@ -2,6 +2,7 @@
 
 import { MessageCircle } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import { Chip } from "@/components/ui/Chip";
 import { guardianMessage, birthdayMessage, waLink } from "@/lib/whatsapp";
 
 export interface NotifyGuardian {
@@ -13,6 +14,10 @@ export interface NotifyTeen {
   id: string;
   name: string;
   guardians: NotifyGuardian[];
+  /** Unit name — shown + woven into the message (useful across units). */
+  unitName?: string | null;
+  /** Unit code — shown as a small chip when notifying across units. */
+  unitCode?: string | null;
 }
 
 export function NotifyGuardiansModal({
@@ -45,10 +50,16 @@ export function NotifyGuardiansModal({
           <ul className="flex flex-col gap-2">
             {teens.map((t) => (
               <li key={t.id} className="block-flat flex flex-col gap-2 p-2.5">
-                <div className="truncate font-medium text-ink">{t.name}</div>
+                <div className="flex items-center gap-2">
+                  <span className="min-w-0 truncate font-medium text-ink">{t.name}</span>
+                  {t.unitCode ? <Chip tone="night">{t.unitCode}</Chip> : null}
+                </div>
                 <div className="flex flex-col gap-1.5">
                   {t.guardians.map((g, i) => {
-                    const link = waLink(g.phone, buildMessage(t.name, g.name));
+                    const link = waLink(
+                      g.phone,
+                      buildMessage(t.name, g.name, t.unitName),
+                    );
                     return (
                       <div
                         key={i}

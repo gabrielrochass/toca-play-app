@@ -77,7 +77,7 @@ Razões de contraste WCAG 2.1 dos dois temas. Limiares: **texto normal ≥ 4,5**
 - chip terra (#2a1206 sobre #db7846): **5.71** ✅
 - chip gold (#2a2005 sobre #f0c246): **9.57** ✅
 - chip orange (#2a1505 sobre #f0801f): **6.47** ✅
-- chip diamond (#04201e sobre #37c2b4): **7.75** ✅
+- chip diamond (#04201e sobre #37c2b4): **7.75** ✅****
 - chip danger (#1a0503 sobre #db4a40): **4.75** ✅
 - chip night (#f6f1e8 sobre #392c60): **10.96** ✅
 

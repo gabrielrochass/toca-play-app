@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   Boxes,
@@ -22,10 +23,17 @@ import { Chip } from "@/components/ui/Chip";
 import { SexIcon } from "@/components/ui/SexIcon";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { TeenDetailModal, type TeenDetail } from "@/components/TeenDetailModal";
+import { type TeenDetail } from "@/components/TeenDetailModal";
 import type { Sex } from "@/types/database";
 import { generateGroups, fillNewCheckins, moveMember } from "./actions";
-import { LeadersModal } from "./LeadersModal";
+
+// Loaded only when opened (detail modal is heavy; leaders modal is admin-flow).
+const TeenDetailModal = dynamic(() =>
+  import("@/components/TeenDetailModal").then((m) => m.TeenDetailModal),
+);
+const LeadersModal = dynamic(() =>
+  import("./LeadersModal").then((m) => m.LeadersModal),
+);
 
 export interface MemberView {
   memberId: string;
@@ -103,21 +111,37 @@ export function GroupsBoard({
   const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
   const run = (fn: () => Promise<void>) => startTransition(fn);
 
-  // Live sync: reflect group moves made on another device.
+  // Live sync: reflect group moves made on another device. `small_group_members`
+  // has no session_id to filter on server-side, so we listen to it broadly but
+  // only refresh when the changed row belongs to THIS session's groups. Group
+  // create/regenerate is caught via small_groups (server-filtered by session).
+  const groupIdsKey = groups
+    .map((g) => g.id)
+    .sort()
+    .join(",");
   useEffect(() => {
     const supabase = createClient();
+    const groupIds = new Set(groupIdsKey ? groupIdsKey.split(",") : []);
     const channel = supabase
       .channel(`groups-${sessionId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "small_group_members" },
+        { event: "*", schema: "public", table: "small_groups", filter: `session_id=eq.${sessionId}` },
         () => router.refresh(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "small_group_members" },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { group_id?: string } | null;
+          if (row?.group_id && groupIds.has(row.group_id)) router.refresh();
+        },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId, router]);
+  }, [sessionId, router, groupIdsKey]);
 
   const leadersCount = leaders.filter((l) => l.leads).length;
 
@@ -364,24 +388,26 @@ export function GroupsBoard({
         })}
       </div>
 
-      <TeenDetailModal
-        teen={selectedTeen}
-        refDate={sessionDate}
-        onClose={() => setSelected(null)}
-        groupMove={
-          selected
-            ? {
-                groups: groupOptions,
-                currentGroupId: selected.groupId,
-                pending,
-                onMove: (target) =>
-                  run(() =>
-                    moveMember(sessionId, selected.member.memberId, target),
-                  ),
-              }
-            : undefined
-        }
-      />
+      {selectedTeen ? (
+        <TeenDetailModal
+          teen={selectedTeen}
+          refDate={sessionDate}
+          onClose={() => setSelected(null)}
+          groupMove={
+            selected
+              ? {
+                  groups: groupOptions,
+                  currentGroupId: selected.groupId,
+                  pending,
+                  onMove: (target) =>
+                    run(() =>
+                      moveMember(sessionId, selected.member.memberId, target),
+                    ),
+                }
+              : undefined
+          }
+        />
+      ) : null}
 
       <ConfirmModal
         open={!!pendingMove}

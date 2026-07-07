@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth";
 import { getUnitScope, serviceLabelsForScope } from "@/lib/unitScope";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateBR } from "@/lib/utils";
+import { unitTone } from "@/lib/units";
 import { dateRangeFor } from "@/lib/period";
 import { PageHeader, EmptyState } from "@/components/ui/PageHeader";
 import { PeriodFilters } from "@/components/shell/PeriodFilters";
@@ -34,6 +35,15 @@ export default async function CultosPage({
   if (range.lte) query = query.lte("session_date", range.lte);
 
   const { data: sessions } = await query;
+
+  // Global admin on "Todas": label each culto with its unit (a BV/CF 10h on the
+  // same day are otherwise indistinguishable). The view exposes unit_id only.
+  const showUnit = !scope.unitId;
+  const unitCodeById = new Map<string, string>();
+  if (showUnit) {
+    const { data: unitRows } = await supabase.from("units").select("id, code");
+    for (const u of unitRows ?? []) unitCodeById.set(u.id, u.code);
+  }
 
   return (
     <>
@@ -75,7 +85,12 @@ export default async function CultosPage({
                   <div className="font-mono text-2xl leading-none text-ink">
                     {s.session_date ? formatDateBR(s.session_date) : "—"}
                   </div>
-                  <div className="mt-2 flex items-center gap-2">
+                  <div className="mt-2 flex flex-wrap items-center gap-2">
+                    {showUnit && s.unit_id && unitCodeById.get(s.unit_id) ? (
+                      <Chip tone={unitTone(unitCodeById.get(s.unit_id))}>
+                        {unitCodeById.get(s.unit_id)}
+                      </Chip>
+                    ) : null}
                     <Chip tone="gold">{s.service_label ?? ""}</Chip>
                     {s.closed_at ? (
                       <Chip tone="night">Encerrado</Chip>

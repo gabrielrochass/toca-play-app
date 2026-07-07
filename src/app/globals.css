@@ -65,6 +65,12 @@
   --chart-terra: #cf6c3a;
   --sex-m: #00a99b;
   --sex-f: #cf6c3a;
+  /* Per-unit comparison series (CF/BV/RA). Own tokens (not the single-series
+     chart colors) so the 3-way categorical trio passes CVD + lightness on the
+     dark surface. Validated via scripts/validate_palette.js. */
+  --unit-cf: #619b3a;
+  --unit-bv: #2a9e93;
+  --unit-ra: #d07038;
 }
 
 /* ---- Light theme -------------------------------------------------------
@@ -101,6 +107,9 @@
   --chart-terra: #9d4d27;
   --sex-m: #0aa093;
   --sex-f: #c0562a;
+  --unit-cf: #3f7a28;
+  --unit-bv: #0aa093;
+  --unit-ra: #9d4d27;
 }
 
 html {

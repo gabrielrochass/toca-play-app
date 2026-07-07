@@ -2,6 +2,102 @@ import { createClient } from "@/lib/supabase/server";
 import { formatMonthShort, formatDateBR } from "@/lib/utils";
 import { dateRangeFor, type SessionFilters } from "@/lib/period";
 
+export interface UnitInfo {
+  code: string;
+  name: string;
+}
+export type UnitSeriesPoint = { label: string } & Record<string, number | string>;
+export interface UnitComparison {
+  /** Units present, ordered by code — one chart series each. */
+  units: UnitInfo[];
+  /** Cumulative registered teens per month, one value column per unit code. */
+  growth: UnitSeriesPoint[];
+  /** Teens present per month, one value column per unit code. */
+  attendance: UnitSeriesPoint[];
+}
+
+/**
+ * Cross-unit comparison for a global admin viewing "Todas". Reads the same
+ * per-unit views WITHOUT a unit filter and pivots in JS to
+ * `{ label: month, CF: n, BV: n, RA: n }`. Entirely app-side — no DB changes.
+ */
+export async function unitComparison(
+  supabase: Supabase,
+  filters: SessionFilters = {},
+): Promise<UnitComparison> {
+  const range = dateRangeFor({ day: filters.day, month: filters.month });
+
+  let growthQ = supabase
+    .from("v_teen_growth")
+    .select("unit_id, month, new_teens")
+    .order("month");
+  if (range.gte) growthQ = growthQ.gte("month", range.gte.slice(0, 7) + "-01");
+  if (range.lte) growthQ = growthQ.lte("month", range.lte.slice(0, 7) + "-01");
+
+  let attQ = supabase
+    .from("v_session_attendance")
+    .select("unit_id, session_date, service_label, teens_present")
+    .order("session_date");
+  if (filters.service) attQ = attQ.eq("service_label", filters.service);
+  if (range.gte) attQ = attQ.gte("session_date", range.gte);
+  if (range.lte) attQ = attQ.lte("session_date", range.lte);
+
+  const [{ data: unitRows }, { data: growthRows }, { data: attRows }] =
+    await Promise.all([
+      supabase.from("units").select("id, code, name").eq("is_active", true).order("code"),
+      growthQ,
+      attQ,
+    ]);
+
+  const units: UnitInfo[] = (unitRows ?? []).map((u) => ({ code: u.code, name: u.name }));
+  const codeById = new Map((unitRows ?? []).map((u) => [u.id, u.code]));
+
+  // Cumulative growth per unit per month.
+  const growthByKey = new Map<string, number>(); // `${month}|${code}` -> new teens
+  const growthMonths = new Set<string>();
+  for (const r of (growthRows ?? []) as Array<Record<string, unknown>>) {
+    const month = r.month as string | null;
+    const code = codeById.get(r.unit_id as string);
+    if (!month || !code) continue;
+    growthMonths.add(month);
+    const k = `${month}|${code}`;
+    growthByKey.set(k, (growthByKey.get(k) ?? 0) + ((r.new_teens as number | null) ?? 0));
+  }
+  const running = new Map<string, number>();
+  const growth: UnitSeriesPoint[] = [...growthMonths]
+    .sort()
+    .map((month) => {
+      const point: UnitSeriesPoint = { label: formatMonthShort(month) };
+      for (const u of units) {
+        running.set(u.code, (running.get(u.code) ?? 0) + (growthByKey.get(`${month}|${u.code}`) ?? 0));
+        point[u.code] = running.get(u.code) ?? 0;
+      }
+      return point;
+    });
+
+  // Teens present per month per unit (total).
+  const attByKey = new Map<string, number>();
+  const attMonths = new Set<string>();
+  for (const r of (attRows ?? []) as Array<Record<string, unknown>>) {
+    const date = r.session_date as string | null;
+    const code = codeById.get(r.unit_id as string);
+    if (!date || !code) continue;
+    const month = date.slice(0, 7);
+    attMonths.add(month);
+    const k = `${month}|${code}`;
+    attByKey.set(k, (attByKey.get(k) ?? 0) + ((r.teens_present as number | null) ?? 0));
+  }
+  const attendance: UnitSeriesPoint[] = [...attMonths]
+    .sort()
+    .map((month) => {
+      const point: UnitSeriesPoint = { label: formatMonthShort(month) };
+      for (const u of units) point[u.code] = attByKey.get(`${month}|${u.code}`) ?? 0;
+      return point;
+    });
+
+  return { units, growth, attendance };
+}
+
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 export interface MonthlyGrowthPoint {

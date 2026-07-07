@@ -27,13 +27,17 @@ export function TeenList({
               type="button"
               onClick={() => setSelected(t)}
               title={`Ver e editar ${t.name}`}
-              className="group panel flex w-full cursor-pointer items-center gap-4 p-4 text-left transition-colors hover:border-orange/50 hover:bg-night-800"
+              className="group panel flex w-full cursor-pointer items-center gap-3 p-4 text-left transition-colors hover:border-orange/50 hover:bg-night-800"
             >
-              <span className="font-mono text-lg leading-none text-muted">
-                {t.display_id}
-              </span>
-              <span className="min-w-0 flex-1 truncate text-base font-semibold text-ink">
-                {t.name}
+              {/* Name is primary; the code is a small secondary line so it never
+                  crowds out the name on narrow screens. */}
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-base font-semibold text-ink">
+                  {t.name}
+                </span>
+                <span className="font-mono text-xs leading-tight text-muted">
+                  {t.display_id}
+                </span>
               </span>
               <span className="flex shrink-0 items-center gap-1.5 text-sm text-muted">
                 <SexIcon sex={t.sex} className="h-4 w-4" />

@@ -1,14 +1,30 @@
+/** "do ministério TocaPlay da Igreja Aponte" — with the unit when known, so a
+ * guardian (and an admin sending across units) sees which campus it's from. */
+function ministryPhrase(unitName?: string | null): string {
+  return unitName?.trim()
+    ? `do ministério TocaPlay da Igreja Aponte (unidade ${unitName.trim()})`
+    : "do ministério TocaPlay da Igreja Aponte";
+}
+
 /** Message sent to a guardian when the culto ends. No emojis (WhatsApp Web
  * renders them poorly), greets the guardian by name, warm but responsible. */
-export function guardianMessage(teenName: string, guardianName?: string): string {
+export function guardianMessage(
+  teenName: string,
+  guardianName?: string,
+  unitName?: string | null,
+): string {
   const greet = guardianName?.trim() ? `Olá, ${guardianName.trim()}!` : "Olá!";
-  return `${greet} Aqui é do ministério TocaPlay da Igreja Aponte. O culto de hoje já terminou e ${teenName} está te esperando para ir para casa. Quando puder, é só vir buscar com tranquilidade. Obrigado por confiar o(a) ${teenName} ao nosso time!`;
+  return `${greet} Aqui é ${ministryPhrase(unitName)}. O culto de hoje já terminou e ${teenName} está te esperando para ir para casa. Quando puder, é só vir buscar com tranquilidade. Obrigado por confiar o(a) ${teenName} ao nosso time!`;
 }
 
 /** Birthday greeting for a guardian. No emojis, warm, from the ministry. */
-export function birthdayMessage(teenName: string, guardianName?: string): string {
+export function birthdayMessage(
+  teenName: string,
+  guardianName?: string,
+  unitName?: string | null,
+): string {
   const greet = guardianName?.trim() ? `Olá, ${guardianName.trim()}!` : "Olá!";
-  return `${greet} Aqui é do ministério TocaPlay da Igreja Aponte. Hoje é um dia especial: passamos para desejar um feliz aniversário para ${teenName}! Que este novo ano seja cheio de alegria e bênçãos. Contamos com ${teenName} no próximo culto para comemorarmos juntos!`;
+  return `${greet} Aqui é ${ministryPhrase(unitName)}. Hoje é um dia especial: passamos para desejar um feliz aniversário para ${teenName}! Que este novo ano seja cheio de alegria e bênçãos. Contamos com ${teenName} no próximo culto para comemorarmos juntos!`;
 }
 
 /** Build a wa.me link (assumes Brazil +55 if no country code). Null if no phone. */

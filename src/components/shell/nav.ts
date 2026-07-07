@@ -38,8 +38,10 @@ export const NAV_ITEMS: NavItem[] = [
     icon: HeartHandshake,
     mobile: true,
   },
-  { href: "/estoque", label: "Estoque", icon: Package, mobile: true },
-  { href: "/relatorios", label: "Relatórios", icon: BarChart3, mobile: true },
+  // Estoque/Relatórios/Usuários live in the mobile "Mais" sheet (not the bottom
+  // bar) — keeping the bar to 4 primary tabs avoids cramped labels on phones.
+  { href: "/estoque", label: "Estoque", icon: Package },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   {
     href: "/config/usuarios",
     label: "Usuários",

@@ -1,19 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Cake, AlertTriangle, Package } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import {
-  NotifyGuardiansModal,
-  type NotifyTeen,
-} from "@/app/(app)/cultos/[id]/NotifyGuardiansModal";
+import { Chip } from "@/components/ui/Chip";
+import type { NotifyTeen } from "@/app/(app)/cultos/[id]/NotifyGuardiansModal";
+
+const NotifyGuardiansModal = dynamic(() =>
+  import("@/app/(app)/cultos/[id]/NotifyGuardiansModal").then(
+    (m) => m.NotifyGuardiansModal,
+  ),
+);
 
 export interface BirthdayTeen {
   id: string;
   name: string;
   guardians: { name: string; phone: string }[];
+  /** Unit code/name — present (and shown) only for a global admin on "Todas". */
+  unitCode?: string | null;
+  unitName?: string | null;
 }
 
 export interface LowStockItem {
@@ -22,6 +30,7 @@ export interface LowStockItem {
   quantity: number;
   min_quantity: number;
   unit_label: string;
+  unitCode?: string | null;
 }
 
 export function DashboardAlerts({
@@ -61,8 +70,29 @@ export function DashboardAlerts({
 
   const notifyAll = () =>
     setNotify(
-      birthdays.map((b) => ({ id: b.id, name: b.name, guardians: b.guardians })),
+      birthdays.map((b) => ({
+        id: b.id,
+        name: b.name,
+        guardians: b.guardians,
+        unitName: b.unitName,
+        unitCode: b.unitCode,
+      })),
     );
+
+  // Comma-separated names, each with a small unit chip when notifying across
+  // units (global admin on "Todas"). Falls back to plain names otherwise.
+  const nameList = (items: { id: string; name: string; unitCode?: string | null }[]) =>
+    items.map((it, i) => (
+      <span key={it.id}>
+        {i > 0 ? ", " : ""}
+        {it.name}
+        {it.unitCode ? (
+          <Chip tone="night" className="ml-1 px-1.5 py-0 text-[0.65rem]">
+            {it.unitCode}
+          </Chip>
+        ) : null}
+      </span>
+    ));
 
   return (
     <>
@@ -77,9 +107,7 @@ export function DashboardAlerts({
                     ? "Aniversariante de hoje"
                     : `${birthdays.length} aniversariantes de hoje`}
                 </p>
-                <p className="mt-0.5 text-sm text-muted">
-                  {birthdays.map((b) => b.name).join(", ")}
-                </p>
+                <p className="mt-0.5 text-sm text-muted">{nameList(birthdays)}</p>
               </div>
             </div>
             <Button size="sm" variant="gold" onClick={notifyAll}>
@@ -102,9 +130,17 @@ export function DashboardAlerts({
                     : `${lowStock.length} produtos com baixo estoque`}
                 </p>
                 <p className="mt-0.5 text-sm text-muted">
-                  {lowStock
-                    .map((p) => `${p.name} (${p.quantity} ${p.unit_label})`)
-                    .join(", ")}
+                  {lowStock.map((p, i) => (
+                    <span key={p.id}>
+                      {i > 0 ? ", " : ""}
+                      {p.name} ({p.quantity} {p.unit_label})
+                      {p.unitCode ? (
+                        <Chip tone="night" className="ml-1 px-1.5 py-0 text-[0.65rem]">
+                          {p.unitCode}
+                        </Chip>
+                      ) : null}
+                    </span>
+                  ))}
                 </p>
               </div>
             </div>
@@ -125,7 +161,7 @@ export function DashboardAlerts({
                 <Cake className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
                 <p className="text-sm text-ink">
                   <span className="font-semibold">Aniversário: </span>
-                  {birthdays.map((b) => b.name).join(", ")}
+                  {nameList(birthdays)}
                 </p>
               </div>
             ) : null}
@@ -134,7 +170,7 @@ export function DashboardAlerts({
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-terra" />
                 <p className="text-sm text-ink">
                   <span className="font-semibold">Baixo estoque: </span>
-                  {lowStock.map((p) => p.name).join(", ")}
+                  {nameList(lowStock)}
                 </p>
               </div>
             ) : null}

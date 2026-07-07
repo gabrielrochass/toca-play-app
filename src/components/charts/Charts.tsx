@@ -137,6 +137,40 @@ export function BarChartMc<T extends object>({
   );
 }
 
+/** Multiple lines (one per named series) with a legend — e.g. compare units. */
+export function MultiLineChartMc<T extends object>({
+  data,
+  series,
+}: {
+  data: T[];
+  series: { key: string; name: string; color: string }[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={240}>
+      <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
+        <CartesianGrid stroke={GRID} strokeDasharray="2 4" vertical={false} />
+        <XAxis dataKey="label" {...axisProps} interval="preserveStartEnd" minTickGap={16} />
+        <YAxis width={34} allowDecimals={false} {...axisProps} axisLine={false} />
+        <Tooltip content={<McMultiTooltip />} cursor={{ stroke: AXIS, strokeWidth: 1 }} />
+        <Legend wrapperStyle={{ fontSize: 12, color: AXIS }} iconType="plainline" iconSize={14} />
+        {series.map((s) => (
+          <Line
+            key={s.key}
+            type="monotone"
+            dataKey={s.key}
+            name={s.name}
+            stroke={s.color}
+            strokeWidth={2}
+            dot={{ r: 3, fill: s.color, strokeWidth: 0 }}
+            activeDot={{ r: 5, strokeWidth: 0 }}
+            isAnimationActive={false}
+          />
+        ))}
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
 /** Grouped (side-by-side) bars for a small set of named series with a legend. */
 export function GroupedBarChartMc<T extends object>({
   data,
