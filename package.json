@@ -18,10 +18,8 @@
     "verify:concurrency": "node --env-file=.env.local scripts/verify-concurrency.mjs"
   },
   "dependencies": {
-    "@hookform/resolvers": "^5.4.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.0",
-    "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
@@ -30,7 +28,6 @@
     "react": "19.2.4",
     "react-day-picker": "^10.0.1",
     "react-dom": "19.2.4",
-    "react-hook-form": "^7.80.0",
     "recharts": "^3.9.1",
     "server-only": "^0.0.1",
     "tailwind-merge": "^3.6.0",

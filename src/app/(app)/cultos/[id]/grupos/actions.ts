@@ -227,26 +227,45 @@ export async function moveMember(
   memberId: string,
   targetGroupId: string,
 ) {
-  await requireSession();
-  const supabase = await createClient();
-  const session = await loadSession(supabase, sessionId);
-  if (!session) return;
+  await requireSession(); // outside try: its redirect must propagate
+  try {
+    const supabase = await createClient();
+    const session = await loadSession(supabase, sessionId);
+    if (!session) return;
 
-  const { data: member } = await supabase
-    .from("small_group_members")
-    .select("group_id")
-    .eq("id", memberId)
-    .maybeSingle();
-  if (!member) return;
-  const sourceGroupId = member.group_id;
-  if (sourceGroupId === targetGroupId) return;
+    const { data: member } = await supabase
+      .from("small_group_members")
+      .select("group_id")
+      .eq("id", memberId)
+      .maybeSingle();
+    if (!member) return;
+    const sourceGroupId = member.group_id;
+    if (sourceGroupId === targetGroupId) return;
 
-  await supabase
-    .from("small_group_members")
-    .update({ group_id: targetGroupId, assigned_manually: true })
-    .eq("id", memberId);
+    // Target must still exist (could have been removed by a regenerate on
+    // another device) — otherwise the FK update fails. No-op if it's gone.
+    const { data: targetGroup } = await supabase
+      .from("small_groups")
+      .select("id")
+      .eq("id", targetGroupId)
+      .maybeSingle();
+    if (!targetGroup) return;
 
-  await recomputeGroupFlag(supabase, targetGroupId, session.session_date);
-  await recomputeGroupFlag(supabase, sourceGroupId, session.session_date);
-  revalidatePath(`/cultos/${sessionId}/grupos`);
+    const { error } = await supabase
+      .from("small_group_members")
+      .update({ group_id: targetGroupId, assigned_manually: true })
+      .eq("id", memberId);
+    if (error) {
+      console.error("[moveMember] update failed", error);
+      return; // don't revalidate on a failed move
+    }
+
+    await recomputeGroupFlag(supabase, targetGroupId, session.session_date);
+    await recomputeGroupFlag(supabase, sourceGroupId, session.session_date);
+    revalidatePath(`/cultos/${sessionId}/grupos`);
+  } catch (e) {
+    // Never let a transient failure escape as an unhandled rejection (which can
+    // surface to the client as "unexpected response"). Log and no-op.
+    console.error("[moveMember] failed", e);
+  }
 }

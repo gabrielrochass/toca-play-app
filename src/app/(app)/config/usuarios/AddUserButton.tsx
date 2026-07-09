@@ -1,10 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { NewUserWizard } from "./NewUserWizard";
 import type { Unit } from "@/types/database";
+
+// Loaded only when the admin opens the wizard.
+const NewUserWizard = dynamic(() =>
+  import("./NewUserWizard").then((m) => m.NewUserWizard),
+);
 
 export function AddUserButton({
   canCreateGlobal,

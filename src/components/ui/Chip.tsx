@@ -11,15 +11,17 @@ type Tone =
   | "diamond"
   | "danger";
 
+// Colored chips use the fixed bright FILL token (identical in both themes) so
+// the dark embedded text stays legible; "night" is structural and flips.
 const TONE: Record<Tone, string> = {
   night: "bg-night-700 text-ink",
-  grass: "bg-grass text-[#0c1f07]",
-  terra: "bg-terra text-[#2a1206]",
-  gold: "bg-gold text-[#2a2005]",
-  amber: "bg-amber text-[#2a1705]",
-  orange: "bg-orange text-[#2a1505]",
-  diamond: "bg-diamond text-[#04201e]",
-  danger: "bg-redstone text-[#2a0806]",
+  grass: "bg-(--color-grass-fill) text-[#0c1f07]",
+  terra: "bg-(--color-terra-fill) text-[#2a1206]",
+  gold: "bg-(--color-gold-fill) text-[#2a2005]",
+  amber: "bg-(--color-amber-fill) text-[#2a1705]",
+  orange: "bg-(--color-orange-fill) text-[#2a1505]",
+  diamond: "bg-(--color-diamond-fill) text-[#04201e]",
+  danger: "bg-(--color-redstone-fill) text-[#1a0503]",
 };
 
 export function Chip({

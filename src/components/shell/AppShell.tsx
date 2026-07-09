@@ -3,9 +3,10 @@ import { LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavList } from "@/components/shell/NavList";
 import { GuiaLink } from "@/components/shell/GuiaLink";
-import { UnitBadge } from "@/components/shell/UnitBadge";
 import { UnitFilter } from "@/components/shell/UnitFilter";
 import { Wordmark } from "@/components/ui/Wordmark";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { MobileMoreMenu } from "@/components/shell/MobileMoreMenu";
 import { signOut } from "@/lib/actions/auth";
 import { ROLE_LABELS } from "@/lib/utils";
 import type { SessionContext } from "@/lib/auth";
@@ -22,12 +23,10 @@ export function AppShell({
   currentUnit: string | null;
   children: ReactNode;
 }) {
+  // Fixed-unit users no longer get a loud pill — their unit is evident from
+  // context (the "Unidade" tile, culto header, etc.), so it isn't repeated next
+  // to their name. Global admins keep the UnitFilter control.
   const isGlobal = !ctx.profile.unit_id;
-  const unitControl = isGlobal ? (
-    <UnitFilter units={units} current={currentUnit} />
-  ) : (
-    <UnitBadge unit={ctx.unit} />
-  );
 
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
@@ -50,8 +49,13 @@ export function AppShell({
           <div className="md:hidden">
             <Wordmark size="sm" />
           </div>
-          <div className="hidden md:block">{unitControl}</div>
-          <div className="flex items-center gap-3">
+          {isGlobal ? (
+            <div className="hidden md:block">
+              <UnitFilter units={units} current={currentUnit} />
+            </div>
+          ) : null}
+          <div className="ml-auto flex items-center gap-3">
+            <ThemeToggle />
             <Link
               href="/conta"
               className="hidden rounded-md px-2 py-1 text-right transition-colors hover:bg-night-800 sm:block"
@@ -77,10 +81,13 @@ export function AppShell({
           </div>
         </header>
 
-        {/* Mobile unit control row */}
-        <div className="flex items-center border-b border-night-700 bg-night-850 px-4 py-2 md:hidden">
-          {unitControl}
-        </div>
+        {/* Mobile unit filter row — only the global admin's switcher (fixed-unit
+            users see their unit as text in the header / "Mais" menu instead). */}
+        {isGlobal ? (
+          <div className="flex items-center border-b border-night-700 bg-night-850 px-4 py-2 md:hidden">
+            <UnitFilter units={units} current={currentUnit} />
+          </div>
+        ) : null}
 
         {/* Content */}
         <main className="mx-auto w-full max-w-6xl flex-1 p-4 pb-24 md:p-8 md:pb-8">
@@ -88,10 +95,14 @@ export function AppShell({
         </main>
       </div>
 
-      {/* Bottom tab bar (mobile) */}
+      {/* Bottom tab bar (mobile): 4 primary tabs + "Mais" (overflow + profile). */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-night-700 bg-night-900 md:hidden">
         <NavList role={ctx.profile.role} variant="bottom" />
-        <GuiaLink variant="bottom" />
+        <MobileMoreMenu
+          role={ctx.profile.role}
+          userName={ctx.profile.full_name}
+          roleLabel={ROLE_LABELS[ctx.profile.role]}
+        />
       </nav>
     </div>
   );

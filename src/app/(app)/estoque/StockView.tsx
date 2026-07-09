@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   Pencil,
@@ -14,13 +15,19 @@ import {
   Download,
 } from "lucide-react";
 import { cn, PRODUCT_CATEGORIES } from "@/lib/utils";
+import { unitTone } from "@/lib/units";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
+import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Field, Input } from "@/components/ui/Field";
-import { ProductFormModal } from "./ProductFormModal";
+
+// Only loaded when the edit modal opens.
+const ProductFormModal = dynamic(() =>
+  import("./ProductFormModal").then((m) => m.ProductFormModal),
+);
 import {
   updateProduct,
   adjustStock,
@@ -35,6 +42,8 @@ export interface ProductRow {
   unit_label: string;
   quantity: number;
   min_quantity: number;
+  /** Unit code — shown (row + confirm) only for a global admin on "Todas". */
+  unitCode?: string | null;
 }
 
 /**
@@ -68,9 +77,12 @@ function statusOf(p: ProductRow) {
 export function StockView({
   products,
   canManage,
+  unitId,
 }: {
   products: ProductRow[];
   canManage: boolean;
+  /** When focused on one unit, scope the realtime channel to it. Null = all. */
+  unitId?: string | null;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState<ProductRow | null>(null);
@@ -83,21 +95,28 @@ export function StockView({
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState<"all" | "low" | "warn" | "ok">("all");
 
-  // Live low-stock updates across devices.
+  // Live low-stock updates across devices. When a single unit is in focus,
+  // scope the subscription to it so other units' product changes don't trigger
+  // needless refetches; on the "all units" view we do want every change.
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
-      .channel("products")
+      .channel(unitId ? `products-${unitId}` : "products")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "products" },
+        {
+          event: "*",
+          schema: "public",
+          table: "products",
+          ...(unitId ? { filter: `unit_id=eq.${unitId}` } : {}),
+        },
         () => router.refresh(),
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [router]);
+  }, [router, unitId]);
 
   const term = q.trim().toLowerCase();
   // filtered by search + category — status counts are computed over this set
@@ -243,7 +262,14 @@ export function StockView({
                     s.row,
                   )}
                 >
-                  <td className="px-4 py-3 font-medium text-ink">{p.name}</td>
+                  <td className="px-4 py-3 font-medium text-ink">
+                    <span className="flex items-center gap-2">
+                      {p.name}
+                      {p.unitCode ? (
+                        <Chip tone={unitTone(p.unitCode)}>{p.unitCode}</Chip>
+                      ) : null}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-muted">{p.category ?? "—"}</td>
                   <td className="whitespace-nowrap px-4 py-3">
                     <span className="text-base font-semibold tabular-nums text-ink">
@@ -343,8 +369,9 @@ export function StockView({
         pending={pending}
         message={
           <>
-            Inativar <b>{removing?.name}</b>? O histórico de movimentos é
-            preservado.
+            Inativar <b>{removing?.name}</b>
+            {removing?.unitCode ? ` (unidade ${removing.unitCode})` : ""}? O
+            histórico de movimentos é preservado.
           </>
         }
         onConfirm={() => {

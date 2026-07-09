@@ -44,6 +44,72 @@
 :root {
   --edge-light: rgba(255, 255, 255, 0.10);
   --edge-dark: rgba(0, 0, 0, 0.30);
+
+  /* Fills: bright accent backgrounds, SAME in both themes (buttons, chips,
+     solid accent surfaces). text-<accent> uses the theme-flipping token above. */
+  --color-grass-fill: #5aa83c;
+  --color-terra-fill: #db7846;
+  --color-gold-fill: #f0c246;
+  --color-amber-fill: #e2952f;
+  --color-orange-fill: #f0801f;
+  --color-diamond-fill: #37c2b4;
+  --color-redstone-fill: #db4a40;
+
+  /* Chart colors — theme-aware; charts read these via var(). */
+  --chart-grid: #33265a;
+  --chart-axis: #ab9fce;
+  --chart-cursor: rgba(255, 255, 255, 0.05);
+  --chart-grass: #6fb03c;
+  --chart-gold: #ecb93c;
+  --chart-diamond: #3bb6ae;
+  --chart-terra: #cf6c3a;
+  --sex-m: #00a99b;
+  --sex-f: #cf6c3a;
+  /* Per-unit comparison series (CF/BV/RA). Own tokens (not the single-series
+     chart colors) so the 3-way categorical trio passes CVD + lightness on the
+     dark surface. Validated via scripts/validate_palette.js. */
+  --unit-cf: #619b3a;
+  --unit-bv: #2a9e93;
+  --unit-ra: #d07038;
+}
+
+/* ---- Light theme -------------------------------------------------------
+   Flip the structure ramp (night-*, ink, muted) and darken accent-as-TEXT so
+   it passes contrast on light surfaces. Bright fills (-fill) stay the same, so
+   buttons/chips keep their dark embedded text. Values validated in
+   scripts/contrast-audit.mjs. */
+:root[data-theme="light"] {
+  --color-night-950: #f4f2fa; /* page background */
+  --color-night-900: #faf9fd; /* sidebar / header */
+  --color-night-850: #ffffff; /* panels / surfaces */
+  --color-night-800: #eee9f6; /* hover / subtle fill */
+  --color-night-700: #d8d1e8; /* borders */
+  --color-night-600: #c3b9dc; /* input borders */
+  --color-night-500: #a99ecb;
+
+  --color-ink: #1b1430;
+  --color-muted: #5a5178;
+
+  --color-grass: #3f7a28;
+  --color-terra: #9d4d27;
+  --color-gold: #8a6410;
+  --color-amber: #8a5a12;
+  --color-orange: #b4550f;
+  --color-diamond: #1b7a70;
+  --color-redstone: #c0392b;
+
+  --chart-grid: #d8d1e8;
+  --chart-axis: #6b6390;
+  --chart-cursor: rgba(20, 12, 40, 0.06);
+  --chart-grass: #3f7a28;
+  --chart-gold: #8a6410;
+  --chart-diamond: #0aa093;
+  --chart-terra: #9d4d27;
+  --sex-m: #0aa093;
+  --sex-f: #c0562a;
+  --unit-cf: #3f7a28;
+  --unit-bv: #0aa093;
+  --unit-ra: #9d4d27;
 }
 
 html {
@@ -63,6 +129,12 @@ body {
     radial-gradient(ellipse 55% 40% at 10% -8%, rgba(101, 82, 160, 0.16), transparent 60%),
     radial-gradient(ellipse 45% 35% at 95% 2%, rgba(219, 120, 70, 0.05), transparent 55%);
   background-attachment: fixed;
+}
+/* Light theme: a much fainter daylight wash so surfaces read clean, not muddy. */
+:root[data-theme="light"] body {
+  background-image:
+    radial-gradient(ellipse 55% 40% at 10% -8%, rgba(101, 82, 160, 0.07), transparent 60%),
+    radial-gradient(ellipse 45% 35% at 95% 2%, rgba(240, 128, 31, 0.05), transparent 55%);
 }
 
 img.pixelated,
@@ -118,29 +190,29 @@ img.pixelated,
   cursor: not-allowed;
 }
 .mc-btn-grass {
-  --btn-bg: var(--color-grass);
+  --btn-bg: var(--color-grass-fill);
   --btn-edge: var(--color-grass-dark);
   color: #10240a;
 }
 .mc-btn-terra {
-  --btn-bg: var(--color-terra);
+  --btn-bg: var(--color-terra-fill);
   --btn-edge: var(--color-terra-dark);
   color: #2a1206;
 }
 .mc-btn-gold {
-  --btn-bg: var(--color-gold);
+  --btn-bg: var(--color-gold-fill);
   --btn-edge: var(--color-gold-dark);
   color: #2a2005;
 }
 .mc-btn-amber {
-  --btn-bg: var(--color-amber);
+  --btn-bg: var(--color-amber-fill);
   --btn-edge: var(--color-amber-dark);
   color: #2a1705;
 }
 .mc-btn-danger {
-  --btn-bg: var(--color-redstone);
+  --btn-bg: var(--color-redstone-fill);
   --btn-edge: var(--color-redstone-dark);
-  color: #2a0806;
+  color: #1a0503;
 }
 .mc-btn-sm {
   font-size: 0.85rem;

@@ -90,7 +90,7 @@ export function LeadersModal({
                     className={cn(
                       "grid h-7 w-7 shrink-0 place-items-center rounded border",
                       checked.has(l.id)
-                        ? "border-grass-dark bg-grass text-[#10240a]"
+                        ? "border-grass-dark bg-(--color-grass-fill) text-[#10240a]"
                         : "border-night-600 bg-night-950 text-transparent",
                     )}
                   >

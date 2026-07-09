@@ -23,7 +23,7 @@ export default async function VoluntariosPage({
 
   let query = supabase
     .from("volunteers")
-    .select("*")
+    .select("id, name, phone, functions, unit_id")
     .eq("is_active", !showInactive)
     .order("name");
   if (scope.unitId) query = query.eq("unit_id", scope.unitId);
@@ -33,11 +33,21 @@ export default async function VoluntariosPage({
   }
   const { data: volunteers } = await query;
 
+  // Global admin on "Todas": tag each row with its unit (for the list + the
+  // inativar confirmation). No labels needed when a unit is in focus.
+  const showUnit = !scope.unitId;
+  const unitCodeById = new Map<string, string>();
+  if (showUnit) {
+    const { data: unitRows } = await supabase.from("units").select("id, code");
+    for (const u of unitRows ?? []) unitCodeById.set(u.id, u.code);
+  }
+
   const rows = (volunteers ?? []).map((v) => ({
     id: v.id,
     name: v.name,
     phone: v.phone,
     functions: v.functions,
+    unitCode: showUnit ? (unitCodeById.get(v.unit_id) ?? null) : null,
   }));
 
   return (

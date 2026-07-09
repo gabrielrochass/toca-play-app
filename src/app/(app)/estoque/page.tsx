@@ -15,11 +15,19 @@ export default async function EstoquePage() {
 
   let query = supabase
     .from("products")
-    .select("*")
+    .select("id, name, category, unit_label, quantity, min_quantity, unit_id")
     .eq("is_active", true)
     .order("name");
   if (scope.unitId) query = query.eq("unit_id", scope.unitId);
   const { data: products } = await query;
+
+  // Global admin on "Todas": tag each product with its unit (list + confirm).
+  const showUnit = !scope.unitId;
+  const unitCodeById = new Map<string, string>();
+  if (showUnit) {
+    const { data: unitRows } = await supabase.from("units").select("id, code");
+    for (const u of unitRows ?? []) unitCodeById.set(u.id, u.code);
+  }
 
   const rows: ProductRow[] = (products ?? []).map((p) => ({
     id: p.id,
@@ -28,6 +36,7 @@ export default async function EstoquePage() {
     unit_label: p.unit_label,
     quantity: p.quantity,
     min_quantity: p.min_quantity,
+    unitCode: showUnit ? (unitCodeById.get(p.unit_id) ?? null) : null,
   }));
   // Low-stock first, then alphabetical.
   rows.sort(
@@ -69,7 +78,7 @@ export default async function EstoquePage() {
       {rows.length === 0 && !canManage ? (
         <EmptyState title="Nenhum produto cadastrado nesta unidade." />
       ) : (
-        <StockView products={rows} canManage={canManage} />
+        <StockView products={rows} canManage={canManage} unitId={scope.unitId} />
       )}
     </>
   );

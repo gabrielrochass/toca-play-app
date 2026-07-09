@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hasAtLeast } from "@/lib/roles";
@@ -16,8 +17,14 @@ export interface SessionContext {
  * Loads the authenticated user's profile + unit. Returns null when there is no
  * session or the user has no profile yet (unprovisioned). RLS guarantees the
  * profile row read here is the user's own.
+ *
+ * Wrapped in React.cache so the layout + every page in one render pass share a
+ * single result (one getUser() + one profiles/units read per request instead of
+ * ~3-4). The same cached SessionContext reference also lets getUnitScope(ctx)
+ * dedupe by identity.
  */
-export async function getSessionContext(): Promise<SessionContext | null> {
+export const getSessionContext = cache(
+  async (): Promise<SessionContext | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -42,7 +49,7 @@ export async function getSessionContext(): Promise<SessionContext | null> {
   }
 
   return { userId: user.id, email: user.email ?? null, profile, unit };
-}
+});
 
 /** Redirects to /login (no session) or /sem-acesso (no profile) if not usable. */
 export async function requireSession(): Promise<SessionContext> {

@@ -6,6 +6,7 @@ import {
   teensPerSession,
   volunteersPerSession,
   teensBySexPerSession,
+  unitComparison,
 } from "@/lib/analytics/queries";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatTile } from "@/components/ui/StatTile";
@@ -14,8 +15,9 @@ import {
   LineChartMc,
   BarChartMc,
   GroupedBarChartMc,
-} from "@/components/charts/Charts";
-import { CHART_COLORS, SEX_COLORS } from "@/components/charts/palette";
+  MultiLineChartMc,
+} from "@/components/charts/ChartsLazy";
+import { CHART_COLORS, SEX_COLORS, UNIT_CHART_COLORS } from "@/components/charts/palette";
 
 export default async function RelatoriosPage() {
   const ctx = await requireSession();
@@ -29,6 +31,15 @@ export default async function RelatoriosPage() {
     volunteersPerSession(supabase, u),
     teensBySexPerSession(supabase, u),
   ]);
+
+  // Global admin on "Todas" also gets a cross-unit comparison section.
+  const comparison = u ? null : await unitComparison(supabase);
+  const unitSeries =
+    comparison?.units.map((un) => ({
+      key: un.code,
+      name: un.name,
+      color: UNIT_CHART_COLORS[un.code] ?? "var(--unit-cf)",
+    })) ?? [];
 
   const teenCountQ = supabase
     .from("teens")
@@ -77,6 +88,30 @@ export default async function RelatoriosPage() {
         <StatTile label="Média meninos/culto" value={avgBoys} tone="diamond" />
         <StatTile label="Média meninas/culto" value={avgGirls} tone="terra" />
       </div>
+
+      {comparison ? (
+        <section className="mb-6">
+          <h2 className="mb-3 font-display text-[0.72rem] text-ink [word-spacing:-0.1em]">
+            Comparativo entre unidades
+          </h2>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ChartCard
+              title="Presença por unidade"
+              subtitle="Pré-adolescentes presentes por mês, por unidade"
+              empty={comparison.attendance.length === 0}
+            >
+              <GroupedBarChartMc data={comparison.attendance} series={unitSeries} />
+            </ChartCard>
+            <ChartCard
+              title="Crescimento por unidade"
+              subtitle="Total de pré-adolescentes cadastrados, por unidade"
+              empty={comparison.growth.length === 0}
+            >
+              <MultiLineChartMc data={comparison.growth} series={unitSeries} />
+            </ChartCard>
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartCard

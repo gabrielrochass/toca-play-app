@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AttendanceList } from "./AttendanceList";
+import { getSession } from "../session";
 
 export default async function VoluntariosTab({
   params,
@@ -12,11 +13,7 @@ export default async function VoluntariosTab({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: session } = await supabase
-    .from("sessions")
-    .select("unit_id")
-    .eq("id", id)
-    .maybeSingle();
+  const session = await getSession(id);
   if (!session) notFound();
 
   const { data: volunteers } = await supabase

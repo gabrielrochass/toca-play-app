@@ -103,7 +103,9 @@ export async function quickCreateAndCheckin(
   return { ok: true };
 }
 
-/** Release a teen (single step): mark as gone. Records who + when. */
+/** Release a teen (single step): mark as gone. Records who + when. When this
+ *  was the last teen still present, the culto auto-closes so the operator
+ *  doesn't have to (the manual "Encerrar culto" button stays as a fallback). */
 export async function releaseCheckin(sessionId: string, checkinId: string) {
   const ctx = await requireSession();
   const supabase = await createClient();
@@ -117,6 +119,23 @@ export async function releaseCheckin(sessionId: string, checkinId: string) {
       check_out_time: now,
     })
     .eq("id", checkinId);
+
+  // Auto-close: nobody left inside → close the culto (idempotent via is-null;
+  // total is >= 1 since we just released one).
+  const { count: notLeft } = await supabase
+    .from("checkins")
+    .select("id", { count: "exact", head: true })
+    .eq("session_id", sessionId)
+    .neq("status", "left");
+  if (!notLeft) {
+    await supabase
+      .from("sessions")
+      .update({ closed_at: now })
+      .eq("id", sessionId)
+      .is("closed_at", null);
+    revalidatePath("/cultos");
+  }
+
   revalidatePath(`/cultos/${sessionId}`);
 }
 

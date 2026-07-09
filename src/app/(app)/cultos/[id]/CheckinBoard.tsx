@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -26,8 +27,8 @@ import { Modal } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { SexIcon } from "@/components/ui/SexIcon";
 import { Input } from "@/components/ui/Field";
-import { NotifyGuardiansModal } from "./NotifyGuardiansModal";
 import type { CheckinStatus, Sex } from "@/types/database";
+
 import {
   addCheckin,
   releaseCheckin,
@@ -37,7 +38,15 @@ import {
   reopenSession,
   quickCreateAndCheckin,
 } from "./actions";
-import { QuickCreateTeenModal } from "./QuickCreateTeenModal";
+
+// Loaded only when their respective flows open (quick-create pulls in the full
+// teen form; notify pulls in the guardian list).
+const NotifyGuardiansModal = dynamic(() =>
+  import("./NotifyGuardiansModal").then((m) => m.NotifyGuardiansModal),
+);
+const QuickCreateTeenModal = dynamic(() =>
+  import("./QuickCreateTeenModal").then((m) => m.QuickCreateTeenModal),
+);
 
 export interface BoardCheckin {
   id: string;
@@ -72,6 +81,7 @@ interface GuardianOption {
 export function CheckinBoard({
   sessionId,
   unitId,
+  unitName = null,
   sessionDate,
   checkins,
   closed,
@@ -79,6 +89,8 @@ export function CheckinBoard({
 }: {
   sessionId: string;
   unitId: string;
+  /** Set for a global admin — woven into WhatsApp messages to name the campus. */
+  unitName?: string | null;
   sessionDate: string;
   checkins: BoardCheckin[];
   closed: boolean;
@@ -269,13 +281,14 @@ export function CheckinBoard({
             <ul className="mt-3 flex flex-col gap-2">
               {results.map((r) => (
                 <li key={r.id} className="block-flat flex items-center gap-3 p-2.5">
-                  <span className="font-mono text-lg leading-none text-muted">
-                    {r.display_id}
+                  {/* Name first (primary), code as a small secondary line. */}
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-medium text-ink">{r.name}</span>
+                    <span className="font-mono text-xs leading-tight text-muted">
+                      {r.display_id}
+                    </span>
                   </span>
-                  <span className="min-w-0 flex-1 truncate font-medium text-ink">
-                    {r.name}
-                  </span>
-                  <span className="flex items-center gap-1 text-sm text-muted">
+                  <span className="flex shrink-0 items-center gap-1 text-sm text-muted">
                     <SexIcon sex={r.sex} className="h-3.5 w-3.5" />
                     {ageAt(r.birthdate, sessionDate)} anos
                   </span>
@@ -325,11 +338,13 @@ export function CheckinBoard({
               key={c.id}
               className="panel flex flex-wrap items-center gap-x-3 gap-y-2 p-3"
             >
-              <span className="font-mono text-lg leading-none text-muted">
-                {c.displayId}
-              </span>
-              <span className="min-w-0 flex-1 truncate font-medium text-ink">
-                {c.name}
+              {/* Already-identified row: name is primary; the code is a small
+                  secondary line, hidden on the narrowest screens. */}
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate font-medium text-ink">{c.name}</span>
+                <span className="hidden font-mono text-xs leading-tight text-muted sm:block">
+                  {c.displayId}
+                </span>
               </span>
               {c.isFirstTime ? <Chip tone="diamond">1ª vez</Chip> : null}
               {isBirthday(c.birthdate, sessionDate) ? (
@@ -347,10 +362,10 @@ export function CheckinBoard({
                 <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
                   {c.status === "present" ? (
                     <>
-                      {waLink(c.guardianPhone, guardianMessage(c.name, c.guardianName)) ? (
+                      {waLink(c.guardianPhone, guardianMessage(c.name, c.guardianName, unitName)) ? (
                         <Tooltip label="Avisar responsável (WhatsApp)">
                           <a
-                            href={waLink(c.guardianPhone, guardianMessage(c.name, c.guardianName))!}
+                            href={waLink(c.guardianPhone, guardianMessage(c.name, c.guardianName, unitName))!}
                             target="_blank"
                             rel="noopener noreferrer"
                             aria-label={`Avisar responsável de ${c.name}`}
@@ -410,6 +425,7 @@ export function CheckinBoard({
             id: c.id,
             name: c.name,
             guardians: [{ name: c.guardianName, phone: c.guardianPhone }],
+            unitName,
           }))}
           onClose={() => setNotifyOpen(false)}
         />
@@ -511,7 +527,7 @@ function ChooseGuardianModal({
                 className={cn(
                   "grid h-5 w-5 shrink-0 place-items-center rounded-full border",
                   sel === g.id
-                    ? "border-grass-dark bg-grass text-[#10240a]"
+                    ? "border-grass-dark bg-(--color-grass-fill) text-[#10240a]"
                     : "border-night-600 text-transparent",
                 )}
               >

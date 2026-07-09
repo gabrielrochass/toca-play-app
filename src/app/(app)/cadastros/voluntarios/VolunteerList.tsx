@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Pencil, Archive, ArchiveRestore } from "lucide-react";
 import { VOLUNTEER_FUNCTION_LABELS, type VolunteerFunction } from "@/lib/utils";
+import { unitTone } from "@/lib/units";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { Chip } from "@/components/ui/Chip";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { setVolunteerActive } from "./actions";
 
@@ -13,6 +15,8 @@ export interface VolunteerRow {
   name: string;
   phone: string | null;
   functions: VolunteerFunction[];
+  /** Unit code — shown (row + confirm) only for a global admin on "Todas". */
+  unitCode?: string | null;
 }
 
 export function VolunteerList({
@@ -47,8 +51,11 @@ export function VolunteerList({
             </span>
 
             <div className="min-w-0 flex-1">
-              <div className="truncate text-base font-semibold text-ink">
-                {v.name}
+              <div className="flex items-center gap-2">
+                <span className="min-w-0 truncate text-base font-semibold text-ink">
+                  {v.name}
+                </span>
+                {v.unitCode ? <Chip tone={unitTone(v.unitCode)}>{v.unitCode}</Chip> : null}
               </div>
               <div className="mt-0.5 truncate text-xs text-muted">
                 {v.phone ?? "Sem telefone"}
@@ -116,8 +123,10 @@ export function VolunteerList({
         pending={pending}
         message={
           <>
-            Inativar <b>{confirmRemove?.name}</b>? Ele some das listas, mas o
-            histórico de presença é preservado. Você pode reativar depois.
+            Inativar <b>{confirmRemove?.name}</b>
+            {confirmRemove?.unitCode ? ` (unidade ${confirmRemove.unitCode})` : ""}? Ele
+            some das listas, mas o histórico de presença é preservado. Você pode
+            reativar depois.
           </>
         }
         onConfirm={() => {

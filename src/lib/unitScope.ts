@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { UNIT_COOKIE } from "@/lib/constants";
@@ -17,7 +18,8 @@ export interface UnitScope {
  * - Unit admins / volunteers are locked to their own unit (RLS enforces it too).
  * - Global admins may focus one unit via the tp_unit cookie, or see all.
  */
-export async function getUnitScope(ctx: SessionContext): Promise<UnitScope> {
+export const getUnitScope = cache(
+  async (ctx: SessionContext): Promise<UnitScope> => {
   if (ctx.profile.unit_id) {
     return { unitId: ctx.profile.unit_id, code: ctx.unit?.code ?? null, canSwitch: false };
   }
@@ -36,7 +38,7 @@ export async function getUnitScope(ctx: SessionContext): Promise<UnitScope> {
     .maybeSingle();
 
   return { unitId: data?.id ?? null, code: data?.code ?? null, canSwitch: true };
-}
+});
 
 /** Distinct service labels ("10h", "17h"…) for the unit in focus (all units if null). */
 export async function serviceLabelsForScope(
