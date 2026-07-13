@@ -19,6 +19,13 @@ import {
 } from "@/components/charts/ChartsLazy";
 import { CHART_COLORS, SEX_COLORS, UNIT_CHART_COLORS } from "@/components/charts/palette";
 
+// Unit → StatTile tone (mirrors the chart/badge unit colors: CF=grass, BV=teal, RA=terra).
+const UNIT_TILE_TONE: Record<string, "grass" | "diamond" | "terra"> = {
+  CF: "grass",
+  BV: "diamond",
+  RA: "terra",
+};
+
 export default async function RelatoriosPage() {
   const ctx = await requireSession();
   const scope = await getUnitScope(ctx);
@@ -91,20 +98,38 @@ export default async function RelatoriosPage() {
 
       {comparison ? (
         <section className="mb-6">
-          <h2 className="mb-3 font-display text-[0.72rem] text-ink [word-spacing:-0.1em]">
+          <h2 className="mb-1 font-display text-[0.72rem] text-ink [word-spacing:-0.1em]">
             Comparativo entre unidades
           </h2>
+          <p className="mb-3 text-xs text-muted">Média de presentes por culto</p>
+          <div className="mb-4 grid grid-cols-3 gap-3">
+            {comparison.units.map((un) => (
+              <StatTile
+                key={un.code}
+                label={un.name}
+                value={comparison.averages[un.code] ?? 0}
+                tone={UNIT_TILE_TONE[un.code] ?? "ink"}
+              />
+            ))}
+          </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <ChartCard
-              title="Presença por unidade"
-              subtitle="Pré-adolescentes presentes por mês, por unidade"
-              empty={comparison.attendance.length === 0}
+              title="Presença por culto"
+              subtitle="Presentes por culto — em ordem de dia e horário (10h, 16h, 17h, 18h30)"
+              empty={comparison.attendancePerCulto.length === 0}
             >
-              <GroupedBarChartMc data={comparison.attendance} series={unitSeries} />
+              <MultiLineChartMc data={comparison.attendancePerCulto} series={unitSeries} />
+            </ChartCard>
+            <ChartCard
+              title="Voluntários por culto"
+              subtitle="Time presente por culto, na sequência temporal"
+              empty={comparison.volunteersPerCulto.length === 0}
+            >
+              <MultiLineChartMc data={comparison.volunteersPerCulto} series={unitSeries} />
             </ChartCard>
             <ChartCard
               title="Crescimento por unidade"
-              subtitle="Total de pré-adolescentes cadastrados, por unidade"
+              subtitle="Pré-adolescentes cadastrados (acumulado), mês a mês"
               empty={comparison.growth.length === 0}
             >
               <MultiLineChartMc data={comparison.growth} series={unitSeries} />
