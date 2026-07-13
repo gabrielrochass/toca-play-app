@@ -163,6 +163,7 @@ export function MultiLineChartMc<T extends object>({
             strokeWidth={2}
             dot={{ r: 3, fill: s.color, strokeWidth: 0 }}
             activeDot={{ r: 5, strokeWidth: 0 }}
+            connectNulls
             isAnimationActive={false}
           />
         ))}
