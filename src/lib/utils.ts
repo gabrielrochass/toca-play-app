@@ -67,6 +67,39 @@ export function formatMonthShort(iso: string): string {
   return `${m}/${y.slice(2)}`;
 }
 
+/** "10:00:00" -> "10h"; "18:30:00" -> "18h30". Null/empty -> "". */
+export function formatTimeBR(time: string | null | undefined): string {
+  if (!time) return "";
+  const [h, m] = time.slice(0, 5).split(":");
+  return m === "00" ? `${h}h` : `${h}h${m}`;
+}
+
+/** Live mask for a typed date: digits -> "dd/mm/aaaa" (mirrors maskPhoneBR). */
+export function maskDateBR(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}/${d.slice(2)}`;
+  return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+}
+
+/** "25/07/2026" -> "2026-07-25" when it's a real date; otherwise "". */
+export function brToISO(br: string): string {
+  const m = br.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return "";
+  const [, dd, mm, yyyy] = m;
+  const iso = `${yyyy}-${mm}-${dd}`;
+  // Round-trip guards against non-existent dates like 31/02 (JS would roll over).
+  const date = new Date(`${iso}T00:00:00`);
+  return Number.isNaN(date.getTime()) || toISODate(date) !== iso ? "" : iso;
+}
+
+/** Live mask for a typed time: digits -> "HH:MM". */
+export function maskTimeBR(value: string): string {
+  const d = value.replace(/\D/g, "").slice(0, 4);
+  if (d.length <= 2) return d;
+  return `${d.slice(0, 2)}:${d.slice(2)}`;
+}
+
 /** ISO date (YYYY-MM-DD) for a Date in local time, no UTC shift. */
 export function toISODate(date: Date): string {
   const y = date.getFullYear();

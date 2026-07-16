@@ -3,7 +3,12 @@
 import { MessageCircle } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
-import { guardianMessage, birthdayMessage, waLink } from "@/lib/whatsapp";
+import {
+  guardianMessage,
+  birthdayMessage,
+  eventEndMessage,
+  waLink,
+} from "@/lib/whatsapp";
 
 export interface NotifyGuardian {
   name: string;
@@ -23,11 +28,14 @@ export interface NotifyTeen {
 export function NotifyGuardiansModal({
   teens,
   variant = "end",
+  eventName = null,
   onClose,
 }: {
   teens: NotifyTeen[];
-  /** "end" = culto acabou; "birthday" = aniversário. Picks the message. */
-  variant?: "end" | "birthday";
+  /** "end" = culto acabou; "birthday" = aniversário; "event" = evento acabou. */
+  variant?: "end" | "birthday" | "event";
+  /** Event name, woven into the message when variant = "event". */
+  eventName?: string | null;
   onClose: () => void;
 }) {
   const title =
@@ -35,9 +43,17 @@ export function NotifyGuardiansModal({
   const intro =
     variant === "birthday"
       ? "Envie um feliz aniversário. Escolha qual responsável avisar pelo WhatsApp."
-      : "Avisa que o culto terminou e o filho está esperando. Escolha qual responsável avisar pelo WhatsApp.";
+      : variant === "event"
+        ? "Avisa que o evento terminou e a pessoa está esperando. Escolha qual responsável avisar pelo WhatsApp."
+        : "Avisa que o culto terminou e o filho está esperando. Escolha qual responsável avisar pelo WhatsApp.";
+  // "event" weaves the event name in place of the unit name; the others use unitName.
   const buildMessage =
-    variant === "birthday" ? birthdayMessage : guardianMessage;
+    variant === "birthday"
+      ? birthdayMessage
+      : variant === "event"
+        ? (name: string, guardianName?: string) =>
+            eventEndMessage(name, guardianName, eventName)
+        : guardianMessage;
 
   return (
     <Modal open onClose={onClose} title={title}>

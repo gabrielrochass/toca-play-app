@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
-import { requireSession } from "@/lib/auth";
+import { requireSession, hasAtLeast } from "@/lib/auth";
 import { getUnitScope } from "@/lib/unitScope";
+import { createClient } from "@/lib/supabase/server";
 import { formatDateBR } from "@/lib/utils";
 import { unitTone } from "@/lib/units";
 import { Chip } from "@/components/ui/Chip";
+import { BoardHeaderActions } from "@/components/ui/BoardHeaderActions";
 import { SessionTabs } from "./SessionTabs";
+import { closeSession, reopenSession } from "./actions";
 import { getSession, getServiceLabel, getUnit } from "./session";
 
 export default async function SessionLayout({
@@ -25,6 +28,22 @@ export default async function SessionLayout({
   const serviceLabel = await getServiceLabel(session.service_id);
   // A global admin navigates across units — show which unit this culto belongs to.
   const unit = scope.canSwitch ? await getUnit(session.unit_id) : null;
+
+  // Encerrar is allowed once everyone has left (server re-checks in closeSession).
+  const supabase = await createClient();
+  const [{ count: total }, { count: notLeft }] = await Promise.all([
+    supabase
+      .from("checkins")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", id),
+    supabase
+      .from("checkins")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", id)
+      .neq("status", "left"),
+  ]);
+  const closed = Boolean(session.closed_at);
+  const everyoneLeft = (total ?? 0) > 0 && (notLeft ?? 0) === 0;
 
   return (
     <div>
@@ -45,7 +64,19 @@ export default async function SessionLayout({
           </Chip>
         ) : null}
         <Chip tone="gold">{serviceLabel ?? ""}</Chip>
-        {session.closed_at ? <Chip tone="night">Encerrado</Chip> : null}
+        {closed ? <Chip tone="night">Encerrado</Chip> : null}
+        <div className="ml-auto">
+          <BoardHeaderActions
+            closed={closed}
+            canClose={everyoneLeft}
+            closeHint="Libere a saída de todos para encerrar"
+            closeLabel="Encerrar culto"
+            reopenLabel="Reabrir culto"
+            onClose={closeSession.bind(null, id)}
+            onReopen={reopenSession.bind(null, id)}
+            canReopen={hasAtLeast(ctx.profile.role, "unit_admin")}
+          />
+        </div>
       </div>
 
       <SessionTabs sessionId={id} />

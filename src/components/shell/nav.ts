@@ -1,6 +1,7 @@
 import {
   Home,
   CalendarDays,
+  PartyPopper,
   Users,
   HeartHandshake,
   BarChart3,
@@ -25,6 +26,8 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Início", icon: Home, mobile: true },
   { href: "/cultos", label: "Cultos", icon: CalendarDays, mobile: true },
+  // No mobile:true → lives in the "Mais" sheet, keeping the bottom bar at 4 tabs.
+  { href: "/eventos", label: "Eventos", icon: PartyPopper },
   {
     href: "/cadastros/pre-adolescentes",
     label: "Pré-adolescentes",

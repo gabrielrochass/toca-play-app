@@ -418,6 +418,108 @@ export type Database = {
         Update: { next_seq?: number };
         Relationships: [];
       };
+      events: {
+        Row: {
+          id: string;
+          unit_id: string | null;
+          name: string;
+          event_date: string;
+          start_time: string | null;
+          location: string | null;
+          notes: string | null;
+          closed_at: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          unit_id?: string | null;
+          name: string;
+          event_date: string;
+          start_time?: string | null;
+          location?: string | null;
+          notes?: string | null;
+          closed_at?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          event_date?: string;
+          start_time?: string | null;
+          location?: string | null;
+          notes?: string | null;
+          closed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      event_visitors: {
+        Row: {
+          id: string;
+          event_id: string;
+          name: string;
+          sex: Sex | null;
+          birthdate: string | null;
+          guardian_name: string | null;
+          guardian_phone: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          name: string;
+          sex?: Sex | null;
+          birthdate?: string | null;
+          guardian_name?: string | null;
+          guardian_phone?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          sex?: Sex | null;
+          birthdate?: string | null;
+          guardian_name?: string | null;
+          guardian_phone?: string | null;
+        };
+        Relationships: [];
+      };
+      event_checkins: {
+        Row: {
+          id: string;
+          event_id: string;
+          unit_id: string | null;
+          teen_id: string | null;
+          visitor_id: string | null;
+          status: CheckinStatus;
+          check_in_time: string;
+          authorized_at: string | null;
+          authorized_by: string | null;
+          check_out_time: string | null;
+          checked_in_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          unit_id?: string | null;
+          teen_id?: string | null;
+          visitor_id?: string | null;
+          status?: CheckinStatus;
+          check_in_time?: string;
+          authorized_at?: string | null;
+          authorized_by?: string | null;
+          check_out_time?: string | null;
+          checked_in_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          status?: CheckinStatus;
+          authorized_at?: string | null;
+          authorized_by?: string | null;
+          check_out_time?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       v_session_attendance: {
@@ -497,6 +599,58 @@ export type Database = {
           updated_at: string;
         };
       };
+      can_access_event: {
+        Args: { p_event: string };
+        Returns: boolean;
+      };
+      register_event_teen: {
+        Args: {
+          p_event: string;
+          p_unit: string;
+          p_name: string;
+          p_birthdate: string;
+          p_sex: Sex;
+          p_guardians: { name: string; phone: string; relationship?: string | null }[];
+          p_cep?: string | null;
+          p_street?: string | null;
+          p_neighborhood?: string | null;
+          p_city?: string | null;
+          p_state?: string | null;
+          p_observations?: string | null;
+        };
+        Returns: string;
+      };
+      search_event_teens: {
+        Args: { p_event: string; p_term: string };
+        Returns: {
+          id: string;
+          display_id: string;
+          name: string;
+          unit_id: string;
+          unit_code: string;
+          sex: Sex;
+          // NOT NULL in teens; the search only joins teens (never visitors).
+          birthdate: string;
+          guardian_name: string;
+          guardian_phone: string;
+        }[];
+      };
+      event_roster: {
+        Args: { p_event: string };
+        Returns: {
+          checkin_id: string;
+          status: CheckinStatus;
+          is_visitor: boolean;
+          name: string;
+          unit_id: string | null;
+          unit_code: string | null;
+          sex: Sex | null;
+          birthdate: string | null;
+          guardian_name: string | null;
+          guardian_phone: string | null;
+          check_in_time: string;
+        }[];
+      };
     };
     Enums: {
       sex: Sex;
@@ -525,3 +679,8 @@ export type TeenGuardian = Database["public"]["Tables"]["teen_guardians"]["Row"]
 export type Product = Database["public"]["Tables"]["products"]["Row"];
 export type StockMovement =
   Database["public"]["Tables"]["stock_movements"]["Row"];
+export type Event = Database["public"]["Tables"]["events"]["Row"];
+export type EventVisitor =
+  Database["public"]["Tables"]["event_visitors"]["Row"];
+export type EventCheckin =
+  Database["public"]["Tables"]["event_checkins"]["Row"];

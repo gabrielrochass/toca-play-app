@@ -38,6 +38,32 @@ tem, dá **erro de runtime** (não é perda de dados). Por isso: migration prime
 As migrations do projeto são **aditivas e idempotentes** (sem `DROP`/`TRUNCATE`/`DELETE`; os
 seeds usam `on conflict do nothing`), então `supabase db push` é seguro e pode ser re-executado.
 
+### Lançar o módulo de Eventos (migration `0017_events.sql`)
+
+É a **primeira feature com migration**. A `0017` é **100% aditiva**: cria 3 tabelas **novas e
+vazias** (`events`, `event_visitors`, `event_checkins`), 4 funções e as políticas de RLS delas.
+**Não** faz `ALTER`/`DROP`/`DELETE`/`TRUNCATE` em nada que já existe — os dados de produção
+(pré-adolescentes, cultos, check-ins, estoque, usuários) **não são tocados**. O redeploy da
+Vercel **sozinho não aplica** migration nenhuma; enquanto você não rodar o `db push`, a `0017`
+simplesmente não existe em produção.
+
+Passo a passo seguro, quando quiser lançar:
+
+1. **Backup** (rede de segurança, mesmo sendo aditivo): Supabase → **Database → Backups**
+   (ou Settings → Database → *Point-in-time recovery*). Confirme que há um backup recente.
+2. **Aplicar só a `0017`:**
+
+   ```bash
+   supabase link --project-ref <project-ref>   # se ainda não linkou nesta máquina
+   supabase db push                             # aplica as migrations que faltam (aqui, a 0017)
+   ```
+
+   O `db push` mostra a lista antes de aplicar — confira que é a `0017_events.sql`.
+3. **Redeploy** na Vercel (código que já está na `main`).
+4. **Conferir:** abra **/eventos** em produção, crie um evento de teste "Todas", faça um
+   check-in e um visitante, e confira a seção **Eventos** em **/relatorios**. Se quiser, apague
+   o evento de teste (Admin: botão de excluir — remove só aquele evento e seus registros).
+
 ## Dados de referência (unidades, horários, contadores)
 
 Ficam na migration `supabase/migrations/0016_seed_reference_data.sql` — idempotente. São

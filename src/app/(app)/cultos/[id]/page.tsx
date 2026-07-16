@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireSession, hasAtLeast } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ageAt } from "@/lib/age";
 import { firstTimerTeenIds } from "@/lib/attendance";
@@ -90,7 +90,6 @@ export default async function CheckinPage({
         sessionDate={session.session_date}
         checkins={checkins}
         closed={Boolean(session.closed_at)}
-        canReopen={hasAtLeast(ctx.profile.role, "unit_admin")}
       />
     </div>
   );

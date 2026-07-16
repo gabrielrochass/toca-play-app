@@ -8,6 +8,8 @@ import {
   DoorOpen,
   CheckCircle2,
   BarChart3,
+  PartyPopper,
+  Star,
 } from "lucide-react";
 import { requireSession } from "@/lib/auth";
 import { ROLE_LABELS } from "@/lib/utils";
@@ -29,7 +31,7 @@ const STEPS: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: CalendarPlus,
     title: "3. Abra o culto",
-    body: "Escolha a data e o horário da sua unidade. Cada unidade tem seus próprios horários.",
+    body: "Digite a data (dd/mm/aaaa) ou escolha no calendário, e toque no horário da sua unidade. Cada unidade tem seus próprios horários.",
   },
   {
     icon: UserCheck,
@@ -59,12 +61,22 @@ const STEPS: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: CheckCircle2,
     title: "9. Encerre o culto",
-    body: "Quando todos tiverem sido liberados, encerre o culto. Um admin pode reabrir se precisar.",
+    body: "Quando todos tiverem sido liberados, toque no ícone de encerrar (✓) no topo da tela — ele só fica ativo depois que ninguém está mais presente. Um admin pode reabrir pelo ícone de cadeado.",
+  },
+  {
+    icon: PartyPopper,
+    title: "10. Crie eventos especiais",
+    body: "Em Eventos, toque em Novo evento: dê nome, data e horário e escolha se é para todas as unidades ou apenas uma. Serve para ações fora do culto de sempre, como o TocaPlay no Pátio.",
+  },
+  {
+    icon: Star,
+    title: "11. Receba no evento — inclusive visitantes",
+    body: "No evento a presença é registrada de três formas: buscar quem já é cadastrado, cadastrar um novo (escolhendo a unidade) ou adicionar um visitante, que não pertence a nenhuma unidade. Check-in, liberar, notificar e encerrar funcionam como no culto (encerrar/excluir ficam nos ícones do topo).",
   },
   {
     icon: BarChart3,
-    title: "10. Acompanhe os relatórios",
-    body: "Veja o crescimento dos pré-adolescentes e o engajamento dos voluntários ao longo do tempo.",
+    title: "12. Acompanhe os relatórios",
+    body: "Veja o crescimento dos pré-adolescentes, o engajamento dos voluntários e a presença por evento (com visitantes) ao longo do tempo.",
   },
 ];
 
@@ -75,7 +87,7 @@ export default async function GuiaPage() {
     <>
       <PageHeader
         title="Guia do TocaPlay"
-        subtitle="O passo a passo completo, do cadastro ao encerramento do culto."
+        subtitle="O passo a passo completo, do cadastro ao encerramento de cultos e eventos."
       />
 
       <Card className="mb-5">
