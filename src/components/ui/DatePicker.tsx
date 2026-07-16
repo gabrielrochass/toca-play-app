@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { CalendarDays } from "lucide-react";
-import { cn, formatDateBR, toISODate } from "@/lib/utils";
+import { cn, brToISO, formatDateBR, maskDateBR, toISODate } from "@/lib/utils";
+import { Input } from "@/components/ui/Field";
 
 // react-day-picker (+ its CSS) is only needed once a calendar opens — load it lazily.
 const DayPickerPopover = dynamic(() => import("./DayPickerPopover"), {
@@ -12,16 +13,18 @@ const DayPickerPopover = dynamic(() => import("./DayPickerPopover"), {
 });
 
 /**
- * Date picker: a button that opens a calendar popover. Writes the ISO date to a
- * hidden input named `name` so server actions read it from FormData. For
- * birthdates, pass `dropdownYears` to show month/year dropdowns.
+ * Date field: type it (dd/mm/aaaa, live-masked) OR pick it in a calendar popover
+ * opened by the trailing icon. Either way it writes the ISO date (YYYY-MM-DD) to
+ * a hidden input named `name` so server actions read it from FormData. For
+ * controlled use (filters) pass `value` + `onChange`. Birthdates pass
+ * `dropdownYears` for month/year dropdowns.
  */
 export function DatePicker({
   name,
   defaultValue,
   value,
   onChange,
-  placeholder = "Escolher data",
+  placeholder = "dd/mm/aaaa",
   dropdownYears,
   className,
 }: {
@@ -35,15 +38,23 @@ export function DatePicker({
 }) {
   const controlled = onChange !== undefined;
   const [open, setOpen] = useState(false);
-  const [internal, setInternal] = useState<Date | undefined>(
-    defaultValue ? new Date(`${defaultValue}T00:00:00`) : undefined,
-  );
-  const selected = controlled
-    ? value
-      ? new Date(`${value}T00:00:00`)
-      : undefined
-    : internal;
+  // The visible, masked BR text. Seeded from the initial ISO (value or default).
+  const [text, setText] = useState(() => {
+    const iso = (controlled ? value : defaultValue) ?? "";
+    return iso ? formatDateBR(iso) : "";
+  });
+  // Reflect external (controlled) value changes during render — React's
+  // adjust-state-on-prop-change pattern — without clobbering in-progress typing
+  // (only resync when the incoming value differs from what we currently parse).
+  const [prevValue, setPrevValue] = useState(value);
+  if (controlled && value !== prevValue) {
+    setPrevValue(value);
+    if ((value ?? "") !== brToISO(text)) setText(value ? formatDateBR(value) : "");
+  }
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  const iso = brToISO(text);
+  const selected = iso ? new Date(`${iso}T00:00:00`) : undefined;
 
   useEffect(() => {
     if (!open) return;
@@ -63,22 +74,31 @@ export function DatePicker({
     };
   }, [open]);
 
-  const iso = selected ? toISODate(selected) : "";
+  function commit(next: string) {
+    setText(next);
+    if (controlled) onChange?.(brToISO(next));
+  }
 
   return (
     <div className="relative" ref={wrapRef}>
       {name ? <input type="hidden" name={name} value={iso} readOnly /> : null}
+      <Input
+        value={text}
+        onChange={(e) => commit(maskDateBR(e.target.value))}
+        placeholder={placeholder}
+        inputMode="numeric"
+        aria-label="Data (dd/mm/aaaa)"
+        className={cn("pr-11", className)}
+      />
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={cn("mc-input flex items-center gap-2 text-left", className)}
+        aria-label="Abrir calendário"
         aria-haspopup="dialog"
         aria-expanded={open}
+        className="absolute right-1.5 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-md text-muted transition-colors hover:text-ink"
       >
-        <CalendarDays className="h-4 w-4 shrink-0 text-muted" />
-        <span className={selected ? "text-ink" : "text-muted"}>
-          {selected ? formatDateBR(iso) : placeholder}
-        </span>
+        <CalendarDays className="h-4 w-4" />
       </button>
 
       {open ? (
@@ -90,8 +110,7 @@ export function DatePicker({
             selected={selected}
             dropdownYears={dropdownYears}
             onSelect={(d) => {
-              if (controlled) onChange?.(d ? toISODate(d) : "");
-              else setInternal(d);
+              commit(d ? formatDateBR(toISODate(d)) : "");
               if (d) setOpen(false);
             }}
           />

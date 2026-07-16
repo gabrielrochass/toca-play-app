@@ -81,7 +81,6 @@ export function VolunteerForm({
           <DatePicker
             name="birthdate"
             defaultValue={volunteer?.birthdate ?? undefined}
-            placeholder="Escolher"
             dropdownYears={{ from: 1950, to: new Date().getFullYear() }}
           />
         </Field>

@@ -87,6 +87,38 @@ export const sessionSchema = z.object({
 });
 export type SessionInput = z.infer<typeof sessionSchema>;
 
+export const eventSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome do evento"),
+  event_date: isoDate,
+  // "HH:MM" opcional (horário de início do evento), 00:00–23:59
+  start_time: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Horário inválido")
+    .optional()
+    .or(z.literal("")),
+  location: optionalText(200),
+  notes: optionalText(2000),
+  // "" / "todas" = todas as unidades (null); senão o uuid da unidade
+  unit_id: z.preprocess(
+    (v) => (v === "" || v === "todas" || v === undefined ? null : v),
+    z.string().uuid("Selecione a unidade").nullable(),
+  ),
+});
+export type EventInput = z.infer<typeof eventSchema>;
+
+/** Visitante: presente no evento, sem unidade. Nome + sexo + nascimento + responsável. */
+export const visitorSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome"),
+  sex: sexEnum,
+  birthdate: isoDate.refine(
+    (d) => new Date(d) <= new Date(),
+    "Data de nascimento não pode ser no futuro",
+  ),
+  guardian_name: z.string().trim().min(2, "Informe o responsável"),
+  guardian_phone: phone,
+});
+export type VisitorInput = z.infer<typeof visitorSchema>;
+
 export const provisionUserSchema = z
   .object({
     email: z.string().trim().email("E-mail inválido"),

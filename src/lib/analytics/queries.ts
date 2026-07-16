@@ -342,3 +342,126 @@ export async function teensBySexPerSession(
     };
   });
 }
+
+export interface EventReportRow {
+  id: string;
+  name: string;
+  date: string | null;
+  /** Everyone who came (present + already released). */
+  total: number;
+  visitors: number;
+  /** Teen attendance by unit code (everyone who came, matching `total`). */
+  perUnit: Record<string, number>;
+}
+export interface EventReport {
+  events: EventReportRow[];
+  /** Unit codes that appear across the events — chart series. */
+  unitCodes: string[];
+  totalAttendance: number;
+  totalVisitors: number;
+  /** One point per event: {label, <code>: n, Visitantes: n} — for a grouped bar. */
+  perEvent: UnitSeriesPoint[];
+}
+
+/**
+ * Recent events with attendance broken down by unit + visitors. RLS already
+ * scopes `events`/`event_checkins` to what the viewer may see. When `unitId` is
+ * set (a global admin focusing one unit), the list is further narrowed to that
+ * unit's events plus the "Todas" events (unit_id IS NULL) — so the Eventos
+ * section matches the rest of the /relatorios page's unit focus.
+ */
+export async function eventReport(
+  supabase: Supabase,
+  unitId?: string | null,
+  limit = 8,
+): Promise<EventReport> {
+  let q = supabase
+    .from("events")
+    .select("id, name, event_date")
+    .order("event_date", { ascending: false })
+    .limit(limit);
+  if (unitId) q = q.or(`unit_id.eq.${unitId},unit_id.is.null`);
+  const { data: events } = await q;
+
+  const list = events ?? [];
+  if (!list.length)
+    return {
+      events: [],
+      unitCodes: [],
+      totalAttendance: 0,
+      totalVisitors: 0,
+      perEvent: [],
+    };
+
+  const ids = list.map((e) => e.id);
+  const [{ data: cis }, { data: unitRows }] = await Promise.all([
+    supabase
+      .from("event_checkins")
+      .select("event_id, unit_id, visitor_id")
+      .in("event_id", ids),
+    supabase.from("units").select("id, code"),
+  ]);
+  const codeById = new Map<string, string>();
+  for (const u of unitRows ?? []) codeById.set(u.id, u.code);
+
+  const byEvent = new Map<
+    string,
+    { total: number; visitors: number; perUnit: Record<string, number> }
+  >();
+  const codesSeen = new Set<string>();
+  for (const c of cis ?? []) {
+    const agg =
+      byEvent.get(c.event_id) ??
+      { total: 0, visitors: 0, perUnit: {} as Record<string, number> };
+    agg.total += 1;
+    if (c.visitor_id) {
+      agg.visitors += 1;
+    } else if (c.unit_id) {
+      const code = codeById.get(c.unit_id);
+      if (code) {
+        agg.perUnit[code] = (agg.perUnit[code] ?? 0) + 1;
+        codesSeen.add(code);
+      }
+    }
+    byEvent.set(c.event_id, agg);
+  }
+
+  // Oldest → newest so the bars read left-to-right in time order.
+  const ordered = [...list].reverse();
+  const rows: EventReportRow[] = ordered.map((e) => {
+    const agg = byEvent.get(e.id) ?? { total: 0, visitors: 0, perUnit: {} };
+    return {
+      id: e.id,
+      name: e.name,
+      date: e.event_date,
+      total: agg.total,
+      visitors: agg.visitors,
+      perUnit: agg.perUnit,
+    };
+  });
+
+  // Canonical unit order (CF=grass, BV=teal, RA=terra) so the teal series sits
+  // BETWEEN grass and terra in the grouped bar — keeps every adjacent pair
+  // CVD-separable (grass↔terra adjacency would fail). "Visitantes" (gold) is
+  // appended last; identity also rests on the legend + per-group bar position.
+  const UNIT_ORDER = ["CF", "BV", "RA"];
+  const unitCodes = [...codesSeen].sort(
+    (a, b) => UNIT_ORDER.indexOf(a) - UNIT_ORDER.indexOf(b),
+  );
+  const perEvent: UnitSeriesPoint[] = rows.map((r) => {
+    const point: UnitSeriesPoint = {
+      label: r.name.length > 16 ? `${r.name.slice(0, 15)}…` : r.name,
+    };
+    for (const code of unitCodes) point[code] = r.perUnit[code] ?? 0;
+    point.Visitantes = r.visitors;
+    return point;
+  });
+
+  return {
+    events: rows,
+    unitCodes,
+    totalAttendance: rows.reduce((s, r) => s + r.total, 0),
+    totalVisitors: rows.reduce((s, r) => s + r.visitors, 0),
+    perEvent,
+  };
+}

@@ -9,9 +9,6 @@ import {
   DoorOpen,
   Undo2,
   Trash2,
-  Lock,
-  Unlock,
-  CheckCircle2,
   MessageCircle,
   Cake,
   Check,
@@ -34,8 +31,6 @@ import {
   releaseCheckin,
   undoRelease,
   removeCheckin,
-  closeSession,
-  reopenSession,
   quickCreateAndCheckin,
 } from "./actions";
 
@@ -85,7 +80,6 @@ export function CheckinBoard({
   sessionDate,
   checkins,
   closed,
-  canReopen,
 }: {
   sessionId: string;
   unitId: string;
@@ -94,7 +88,6 @@ export function CheckinBoard({
   sessionDate: string;
   checkins: BoardCheckin[];
   closed: boolean;
-  canReopen: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -125,8 +118,6 @@ export function CheckinBoard({
     }
     return { present, left, total: checkins.length };
   }, [checkins]);
-
-  const everyoneLeft = counts.total > 0 && counts.present === 0;
 
   useEffect(() => {
     const term = q.replace(/[,()%*]/g, " ").trim();
@@ -204,24 +195,6 @@ export function CheckinBoard({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Close / reopen bar */}
-      {closed ? (
-        <div className="panel flex flex-wrap items-center justify-between gap-3 border-gold/40 p-4">
-          <span className="flex items-center gap-2 font-semibold text-gold">
-            <Lock className="h-4 w-4" /> Culto encerrado
-          </span>
-          {canReopen ? (
-            <Button
-              size="sm"
-              disabled={pending}
-              onClick={() => run(() => reopenSession(sessionId))}
-            >
-              <Unlock className="h-4 w-4" strokeWidth={2.5} /> Reabrir
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-
       {actionError ? (
         <div className="panel border-redstone/50 bg-redstone/10 p-3 text-sm font-medium text-redstone">
           {actionError}
@@ -234,32 +207,14 @@ export function CheckinBoard({
         <Tile label="Liberados" value={counts.left} tone="text-muted" />
       </div>
 
-      {/* Actions: notify + close */}
-      {!closed ? (
-        <div className="flex flex-wrap items-center gap-3">
-          {presentTeens.length > 0 ? (
-            <Button
-              size="sm"
-              variant="grass"
-              onClick={() => setNotifyOpen(true)}
-            >
-              <MessageCircle className="h-4 w-4" strokeWidth={2.5} /> Notificar
-              responsáveis ({presentTeens.length})
-            </Button>
-          ) : null}
-          <Button
-            variant={everyoneLeft ? "amber" : "default"}
-            size="sm"
-            disabled={pending || !everyoneLeft}
-            onClick={() => run(() => closeSession(sessionId))}
-          >
-            <CheckCircle2 className="h-4 w-4" strokeWidth={2.5} /> Encerrar culto
+      {/* Notify guardians of everyone still present. Encerrar/Reabrir live in
+          the culto header (BoardHeaderActions) for consistency across screens. */}
+      {!closed && presentTeens.length > 0 ? (
+        <div>
+          <Button size="sm" variant="grass" onClick={() => setNotifyOpen(true)}>
+            <MessageCircle className="h-4 w-4" strokeWidth={2.5} /> Notificar
+            responsáveis ({presentTeens.length})
           </Button>
-          {!everyoneLeft && counts.total > 0 ? (
-            <span className="text-xs text-muted">
-              Libere a saída de todos para encerrar.
-            </span>
-          ) : null}
         </div>
       ) : null}
 

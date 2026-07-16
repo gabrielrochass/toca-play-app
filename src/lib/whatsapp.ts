@@ -1,9 +1,9 @@
-/** "do ministério TocaPlay da Igreja Aponte" — with the unit when known, so a
+/** "do ministério TocaPlay da Igreja A Ponte" — with the unit when known, so a
  * guardian (and an admin sending across units) sees which campus it's from. */
 function ministryPhrase(unitName?: string | null): string {
   return unitName?.trim()
-    ? `do ministério TocaPlay da Igreja Aponte (unidade ${unitName.trim()})`
-    : "do ministério TocaPlay da Igreja Aponte";
+    ? `do ministério TocaPlay da Igreja A Ponte (unidade ${unitName.trim()})`
+    : "do ministério TocaPlay da Igreja A Ponte";
 }
 
 /** Message sent to a guardian when the culto ends. No emojis (WhatsApp Web
@@ -25,6 +25,18 @@ export function birthdayMessage(
 ): string {
   const greet = guardianName?.trim() ? `Olá, ${guardianName.trim()}!` : "Olá!";
   return `${greet} Aqui é ${ministryPhrase(unitName)}. Hoje é um dia especial: passamos para desejar um feliz aniversário para ${teenName}! Que este novo ano seja cheio de alegria e bênçãos. Contamos com ${teenName} no próximo culto para comemorarmos juntos!`;
+}
+
+/** Message sent to a guardian when an event ends. Names the event, warm but
+ * responsible. No emojis. */
+export function eventEndMessage(
+  personName: string,
+  guardianName?: string,
+  eventName?: string | null,
+): string {
+  const greet = guardianName?.trim() ? `Olá, ${guardianName.trim()}!` : "Olá!";
+  const ev = eventName?.trim() ? `o evento ${eventName.trim()}` : "o evento";
+  return `${greet} Aqui é ${ministryPhrase()}. ${ev} já terminou e ${personName} está te esperando para ir para casa. Quando puder, é só vir buscar com tranquilidade. Obrigado por confiar ${personName} ao nosso time!`;
 }
 
 /** Build a wa.me link (assumes Brazil +55 if no country code). Null if no phone. */

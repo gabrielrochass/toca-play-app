@@ -148,7 +148,6 @@ export function TeenForm({
             <DatePicker
               name="birthdate"
               defaultValue={teen?.birthdate}
-              placeholder="Escolher data"
               dropdownYears={{ from: 2005, to: new Date().getFullYear() }}
             />
           </Field>

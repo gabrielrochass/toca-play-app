@@ -7,6 +7,7 @@ import {
   volunteersPerSession,
   teensBySexPerSession,
   unitComparison,
+  eventReport,
 } from "@/lib/analytics/queries";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatTile } from "@/components/ui/StatTile";
@@ -32,12 +33,23 @@ export default async function RelatoriosPage() {
   const u = scope.unitId;
   const supabase = await createClient();
 
-  const [growth, teenSeries, volSeries, sexSeries] = await Promise.all([
+  const [growth, teenSeries, volSeries, sexSeries, events] = await Promise.all([
     teenGrowthByMonth(supabase, u),
     teensPerSession(supabase, u),
     volunteersPerSession(supabase, u),
     teensBySexPerSession(supabase, u),
+    eventReport(supabase, u),
   ]);
+
+  // Events chart series: one bar per unit (its own color) + a Visitantes bar.
+  const eventSeries = [
+    ...events.unitCodes.map((code) => ({
+      key: code,
+      name: code,
+      color: UNIT_CHART_COLORS[code] ?? "var(--unit-cf)",
+    })),
+    { key: "Visitantes", name: "Visitantes", color: CHART_COLORS.gold },
+  ];
 
   // Global admin on "Todas" also gets a cross-unit comparison section.
   const comparison = u ? null : await unitComparison(supabase);
@@ -135,6 +147,37 @@ export default async function RelatoriosPage() {
               <MultiLineChartMc data={comparison.growth} series={unitSeries} />
             </ChartCard>
           </div>
+        </section>
+      ) : null}
+
+      {events.events.length ? (
+        <section className="mb-6">
+          <h2 className="mb-1 font-display text-[0.72rem] text-ink [word-spacing:-0.1em]">
+            Eventos
+          </h2>
+          <p className="mb-3 text-xs text-muted">
+            Presença por evento — pré-adolescentes por unidade e visitantes
+          </p>
+          <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
+            <StatTile label="Eventos" value={events.events.length} tone="gold" />
+            <StatTile
+              label="Presenças (total)"
+              value={events.totalAttendance}
+              tone="grass"
+            />
+            <StatTile
+              label="Visitantes"
+              value={events.totalVisitors}
+              tone="diamond"
+            />
+          </div>
+          <ChartCard
+            title="Presença por evento"
+            subtitle="Pré-adolescentes por unidade (RA/CF/BV) e visitantes, por evento"
+            empty={events.perEvent.length === 0}
+          >
+            <GroupedBarChartMc data={events.perEvent} series={eventSeries} />
+          </ChartCard>
         </section>
       ) : null}
 
