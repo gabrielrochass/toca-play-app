@@ -46,7 +46,7 @@ export default async function CheckinPage({
           .select("id, name, phone")
           .in("teen_id", teenIds)
           .then((r) => r.data ?? []),
-        firstTimerTeenIds(supabase, session.unit_id, session.session_date, teenIds),
+        firstTimerTeenIds(supabase, session, teenIds),
       ])
     : [[], [], new Set<string>()];
 

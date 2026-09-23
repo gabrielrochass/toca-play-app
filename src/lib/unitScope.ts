@@ -40,16 +40,17 @@ export const getUnitScope = cache(
   return { unitId: data?.id ?? null, code: data?.code ?? null, canSwitch: true };
 });
 
-/** Distinct service labels ("10h", "17h"…) for the unit in focus (all units if null). */
+/**
+ * Distinct service labels ("10h", "17h"…) in clock order, for the unit in focus
+ * (all units if null). Ordered by start_time because sort_order is per-unit and
+ * interleaves wrongly across units. Retired slots (is_active = false) are
+ * included on purpose: this feeds the HISTORY filter, not the new-culto picker.
+ */
 export async function serviceLabelsForScope(
   unitId: string | null,
 ): Promise<string[]> {
   const supabase = await createClient();
-  let q = supabase
-    .from("unit_services")
-    .select("label")
-    .eq("is_active", true)
-    .order("sort_order");
+  let q = supabase.from("unit_services").select("label").order("start_time");
   if (unitId) q = q.eq("unit_id", unitId);
   const { data } = await q;
   return [...new Set((data ?? []).map((s) => s.label))];

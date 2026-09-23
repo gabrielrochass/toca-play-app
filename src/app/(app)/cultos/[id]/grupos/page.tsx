@@ -85,7 +85,7 @@ export default async function GruposTab({
           .in("id", memberTeenIds)
           .then((r) => r.data ?? [])
       : Promise.resolve([]),
-    firstTimerTeenIds(supabase, session.unit_id, sessionDate, memberTeenIds),
+    firstTimerTeenIds(supabase, session, memberTeenIds),
   ]);
   const teenMap = new Map(teens.map((t) => [t.id, t]));
 
