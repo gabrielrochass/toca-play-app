@@ -26,7 +26,8 @@ export async function addCheckin(
   const ctx = await requireSession();
   const supabase = await createClient();
   const session = await sessionInfo(supabase, sessionId);
-  if (!session || session.closed_at) return;
+  if (!session) return { error: "Culto não encontrado." };
+  if (session.closed_at) return { error: "O culto está encerrado." };
 
   // The chosen responsável must belong to this teen (else store none).
   let gid: string | null = null;

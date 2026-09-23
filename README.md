@@ -1,7 +1,7 @@
 # TocaPlay — Check-in
 
 App de check-in do ministério **TocaPlay** da Igreja Aponte. Cadastro persistente
-de pré-adolescentes, check-in por culto (manhã/tarde), gestão de saída, formação
+de pré-adolescentes, check-in por culto (horários por unidade), gestão de saída, formação
 automática de pequenos grupos, presença de voluntários, configuração de horários e
 relatórios de crescimento. Multi-unidade (Boa Viagem, **Casa Forte**, Recife Antigo),
 isolado por unidade no nível do banco.

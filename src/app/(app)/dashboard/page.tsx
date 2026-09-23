@@ -35,9 +35,7 @@ export default async function DashboardPage() {
   let todayQ = supabase
     .from("sessions")
     .select("id, service_id, unit_id, closed_at")
-    .eq("session_date", todayISO)
-    .order("unit_id")
-    .order("service_id");
+    .eq("session_date", todayISO);
   if (scope.unitId) {
     teenCountQ.eq("unit_id", scope.unitId);
     sessionCountQ.eq("unit_id", scope.unitId);
@@ -52,12 +50,16 @@ export default async function DashboardPage() {
       teensPerSession(supabase, scope.unitId),
     ]);
 
-  // Resolve today's service labels.
+  // Resolve today's service labels + start times (the buttons read in clock order).
   const serviceIds = (todaySessions ?? []).map((s) => s.service_id);
   const { data: services } = serviceIds.length
-    ? await supabase.from("unit_services").select("id, label").in("id", serviceIds)
+    ? await supabase
+        .from("unit_services")
+        .select("id, label, start_time")
+        .in("id", serviceIds)
     : { data: [] };
   const labelOf = new Map((services ?? []).map((s) => [s.id, s.label]));
+  const startOf = new Map((services ?? []).map((s) => [s.id, s.start_time]));
 
   // --- Alerts: birthdays today + low stock -------------------------------
   let teenBdayQ = supabase
@@ -130,7 +132,17 @@ export default async function DashboardPage() {
 
   // Only OPEN cultos are continuable (a closed one is done). For a global admin
   // on "Todas", label each with its unit so it's clear which culto it is.
-  const openToday = (todaySessions ?? []).filter((s) => !s.closed_at);
+  const openToday = (todaySessions ?? [])
+    .filter((s) => !s.closed_at)
+    .sort((a, b) => {
+      const ua = unitById.get(a.unit_id)?.code ?? "";
+      const ub = unitById.get(b.unit_id)?.code ?? "";
+      return ua === ub
+        ? (startOf.get(a.service_id) ?? "").localeCompare(
+            startOf.get(b.service_id) ?? "",
+          )
+        : ua.localeCompare(ub);
+    });
   const cultoLabel = (s: { service_id: string; unit_id: string }) => {
     const service = labelOf.get(s.service_id) ?? "culto";
     const code = showUnit ? unitById.get(s.unit_id)?.code : null;
@@ -152,7 +164,7 @@ export default async function DashboardPage() {
 
       {/* Today's culto */}
       <Card className="mb-5">
-        <CardTitle className="mb-3">Culto de hoje</CardTitle>
+        <CardTitle className="mb-3">Cultos de hoje</CardTitle>
         {openToday.length ? (
           <div className="flex flex-wrap gap-2">
             {openToday.map((s) => (

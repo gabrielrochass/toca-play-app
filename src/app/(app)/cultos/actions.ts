@@ -33,7 +33,7 @@ export async function createSession(
 
   if (error) {
     if (error.code === "23505") {
-      return { error: "Já existe um culto nessa data e turno." };
+      return { error: "Já existe um culto nessa data e horário." };
     }
     return { error: "Não foi possível criar o culto." };
   }

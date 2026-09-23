@@ -127,7 +127,7 @@ export default async function RelatoriosPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <ChartCard
               title="Presença por culto"
-              subtitle="Presentes por culto — em ordem de dia e horário (10h, 16h, 17h, 18h30)"
+              subtitle="Presentes por culto — em ordem de dia e horário"
               empty={comparison.attendancePerCulto.length === 0}
             >
               <MultiLineChartMc data={comparison.attendancePerCulto} series={unitSeries} />

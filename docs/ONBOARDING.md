@@ -106,9 +106,9 @@ Quando houver algo importante, aparecem cartões no topo (sempre da unidade em f
 
 **Pop-up "Avisos de hoje":** na **primeira vez que você abre o Início no dia**, se houver aniversário e/ou baixo estoque, uma janela aparece automaticamente resumindo os avisos. Botões: **"Parabenizar responsáveis"** (se houver aniversário) e **"Entendi"**. Depois de fechada, não reaparece no mesmo dia.
 
-### Culto de hoje
+### Cultos de hoje
 
-- Se **há culto aberto hoje**: um botão **"Continuar {horário}"** para cada culto (ex.: *"Continuar 10h"*) e um botão **"Outro horário"** para abrir mais um.
+- Se **há culto aberto hoje**: um botão **"Continuar {horário}"** para cada culto (ex.: *"Continuar 09h"*), em ordem de horário, e um botão **"Outro horário"** para abrir mais um.
 - Se **não há culto hoje**: o botão **"Abrir culto de hoje"**.
 
 ### Números e gráfico
@@ -207,7 +207,7 @@ Este é o coração do sistema. A ordem recomendada:
 4. (Opcional) escreva **Observações** do culto.
 5. Toque em **"Abrir culto"**.
 
-> Não é possível abrir dois cultos na mesma data e horário — o sistema avisa: *"Já existe um culto nessa data e turno."*
+> Não é possível abrir dois cultos na mesma data e horário — o sistema avisa: *"Já existe um culto nessa data e horário."*
 
 Dentro do culto há três abas: **Check-in**, **Voluntários** e **Grupos**.
 

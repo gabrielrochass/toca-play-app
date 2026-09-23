@@ -21,9 +21,10 @@ export interface UnitComparison {
 }
 
 /**
- * Service label -> {start,sort}. `unit_services` seeds a 1:1 label↔start_time
- * mapping across units (10h→10:00, 16h→16:00, 17h→17:00, 18h30→18:30), so a
- * label-keyed map is enough to order cultos by real time (not by label text).
+ * Service label -> {start,sort}. Labels are the time itself, so the label↔
+ * start_time mapping stays 1:1 across units and a label-keyed map is enough to
+ * order cultos by real time (not by label text). Retired slots are deliberately
+ * included — historical cultos still carry their label and must still sort.
  */
 async function serviceTimeMap(
   supabase: Supabase,
@@ -55,7 +56,7 @@ function pivotPerCulto(
   codeById: Map<string, string>,
   startByLabel: Map<string, { start: string; sort: number }>,
   valueKey: string,
-  limit = 14,
+  limit = 21,
 ): UnitSeriesPoint[] {
   const slots = new Map<
     string,
@@ -93,7 +94,7 @@ function pivotPerCulto(
 /**
  * Cross-unit comparison for a global admin viewing "Todas". Reads the same
  * per-unit views WITHOUT a unit filter and pivots in JS. Per-culto series are
- * ordered by (date, service start_time) so 10h→16h→17h→18h30 reads correctly.
+ * ordered by (date, service start_time) so the horários read in clock order.
  * Entirely app-side — no DB changes.
  */
 export async function unitComparison(
@@ -234,7 +235,7 @@ async function sessionSeries(
   valueKey: "teens_present" | "volunteers_present",
   unitId?: string | null,
   filters: SessionFilters = {},
-  limit = 24,
+  limit = 32,
 ): Promise<SessionPoint[]> {
   let query = supabase
     .from(view)
@@ -308,7 +309,7 @@ export async function teensBySexPerSession(
   supabase: Supabase,
   unitId?: string | null,
   filters: SessionFilters = {},
-  limit = 24,
+  limit = 32,
 ): Promise<SexSessionPoint[]> {
   let query = supabase
     .from("v_session_attendance_by_sex")
